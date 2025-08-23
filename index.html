@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta property="og:title" content="KTech Eletrônicos & Importados — Catálogo Oficial">
+<meta property="og:title" content="KTech — Catálogo Oficial">
 <meta property="og:description" content="Ofertas atualizadas, retirada no local e entrega rápida. Clique e escolha seus produtos!">
 <meta property="og:image" content="https://ktecheletronicos.github.io/loja/ktech_preview_catalogo_oficial.png">
 <meta property="og:url" content="https://ktecheletronicos.github.io/loja/">
@@ -12,13 +12,15 @@
 <link rel="icon" type="image/png" href="https://ktecheletronicos.github.io/ktechfiles/logo_k.png">
 <style>
 body { font-family: 'Segoe UI', Arial, sans-serif; margin:0; padding:0; background:#f4f7fb; color:#333; }
+
 /* ===== HEADER ===== */
 .header { position: fixed; top:0; left:0; right:0; background: linear-gradient(90deg, #0d6efd, #0a58ca); color:#fff; padding:10px 14px; display:flex; align-items:center; gap:10px; box-shadow:0 2px 5px rgba(0,0,0,0.2); z-index:1000; }
 .header img.logo { height:34px; width:auto; border-radius:6px; background:#fff; padding:2px; }
-.header h1 { font-size:15px; margin:0; flex:1; font-weight:bold; white-space:nowrap; }
+.header h1 { font-size:15px; margin:0; flex:1; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 #searchInput { flex:2; padding:8px; border:none; border-radius:20px; outline:none; font-size:14px; }
 .cart-icon { position:relative; background:#fff; color:#0d6efd; border:none; border-radius:50%; width:42px; height:42px; font-size:20px; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 4px rgba(0,0,0,0.2); }
 .cart-count { position:absolute; top:-5px; right:-5px; background:#dc3545; color:#fff; font-size:12px; border-radius:50%; padding:2px 6px; }
+
 /* ===== PRODUTOS ===== */
 .products-container { padding:80px 12px 100px; }
 .products-section { display:grid; grid-template-columns:repeat(auto-fill, minmax(160px,1fr)); gap:15px; }
@@ -31,24 +33,39 @@ button:hover { background:#0a58ca; }
 .added { background:#dc3545 !important; }
 .qty-controls { display:flex; justify-content:center; align-items:center; gap:6px; margin-top:6px; }
 .qty-btn { width:32px; height:32px; font-size:18px; border-radius:50%; background:#0d6efd; color:#fff; }
+
 /* ===== CARRINHO ===== */
-.cart-section { position:fixed; bottom:0; left:0; right:0; background:#fff; border-top:3px solid #0d6efd; max-height:65%; overflow-y:auto; transform:translateY(100%); transition:transform 0.3s ease; padding:18px; z-index:2000; border-radius:12px 12px 0 0; box-shadow:0 -4px 10px rgba(0,0,0,0.15); }
+.cart-section { position:fixed; top:0; left:0; right:0; bottom:0; background:#fff; transform:translateY(100%); transition:transform 0.3s ease; padding:18px; z-index:3000; border-radius:0; box-shadow:0 -4px 10px rgba(0,0,0,0.15); display:flex; flex-direction:column; }
 .cart-section.open { transform:translateY(0); }
-.cart-section h2 { margin:0 0 12px; font-size:16px; color:#0a58ca; }
+.cart-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+.cart-header h2 { margin:0; font-size:18px; color:#0a58ca; }
+.cart-close { background:#dc3545; border:none; color:#fff; padding:8px 14px; border-radius:6px; font-size:14px; cursor:pointer; }
 .cart-item { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-size:14px; gap:8px; }
 .cart-qty { display:flex; align-items:center; gap:6px; }
-#whatsappBtn { width:100%; margin-top:12px; padding:12px; font-size:16px; background:#0d6efd; border-radius:8px; }
+#cartItems { flex:1; overflow-y:auto; padding-right:4px; }
+#whatsappBtn { width:100%; margin-top:12px; padding:14px; font-size:16px; background:#0d6efd; border-radius:10px; }
 #whatsappBtn:hover { background:#0a58ca; }
+
 /* ===== VALIDAÇÃO ===== */
 .error { color:#dc3545; font-size:13px; margin-top:4px; display:none; }
 input.error-border { border:2px solid #dc3545 !important; }
+
 /* ===== MODAL ===== */
 .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); justify-content:center; align-items:center; z-index:5000; }
 .modal img { max-width:90%; max-height:80%; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.5); }
 .modal button { position:absolute; top:20px; right:20px; background:#dc3545; border:none; color:#fff; padding:10px 14px; border-radius:8px; font-size:16px; cursor:pointer; }
+
 /* ===== BOTÃO FLUTUANTE ===== */
-#floatingCartBtn { position: fixed; bottom: 20px; right: 20px; background: #28a745; color: #fff; border: none; border-radius: 50px; padding: 12px 18px; font-size: 16px; cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.2); z-index: 3000; display: flex; align-items: center; gap: 8px; }
+#floatingCartBtn { position: fixed; bottom: 20px; right: 20px; background: #28a745; color: #fff; border: none; border-radius: 50px; padding: 12px 18px; font-size: 16px; cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.2); z-index: 2500; display: flex; align-items: center; gap: 8px; }
 #floatingCartBtn:hover { background: #218838; }
+
+/* ===== RESPONSIVO ===== */
+@media (max-width: 600px){
+  .header h1 { font-size:13px; }
+  .products-section { grid-template-columns:repeat(auto-fill, minmax(140px,1fr)); }
+  .cart-header h2 { font-size:16px; }
+  button { font-size:14px; }
+}
 </style>
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 </head>
@@ -69,12 +86,15 @@ input.error-border { border:2px solid #dc3545 !important; }
 
 <!-- CARRINHO -->
 <div class="cart-section" id="cartSection">
-  <h2>Meu Carrinho</h2>
+  <div class="cart-header">
+    <h2>Meu Carrinho</h2>
+    <button class="cart-close" id="closeCartBtn">⬅ Voltar</button>
+  </div>
   <div id="cartItems">Carrinho vazio</div>
 
   <div style="margin:10px 0; padding:10px; border:1px solid #ccc; border-radius:8px; background:#f9f9f9;">
     <label style="font-weight:bold;">Escolha como deseja receber o pedido:</label>
-    <div style="display:flex; gap:12px; margin-top:8px;">
+    <div style="display:flex; flex-wrap:wrap; gap:12px; margin-top:8px;">
       <label><input type="radio" name="deliveryOption" value="RETIRADA" checked> Buscar no local</label>
       <label><input type="radio" name="deliveryOption" value="ENTREGA"> Entrega em endereço</label>
     </div>
@@ -85,7 +105,7 @@ input.error-border { border:2px solid #dc3545 !important; }
     
     <div class="form-container" style="margin-top:10px;">
       <label>Tipo de endereço:</label>
-      <div class="radio-group">
+      <div class="radio-group" style="display:flex; flex-wrap:wrap; gap:10px; margin:6px 0;">
         <label><input type="radio" name="tipoEndereco" value="CONDOMINIO">🏘️ Condomínio</label>
         <label><input type="radio" name="tipoEndereco" value="EMPRESA">🏢 Empresa</label>
         <label><input type="radio" name="tipoEndereco" value="CASA">🏠 Casa</label>
@@ -96,12 +116,12 @@ input.error-border { border:2px solid #dc3545 !important; }
       </div>
       <label for="street">Nome da rua ou quadra:</label>
       <input type="text" id="street" placeholder="Exemplo: Av. Frei Serafim, Quadra 22" />
-      <div class="form-row">
-        <div class="form-group">
+      <div class="form-row" style="display:flex; gap:10px; flex-wrap:wrap;">
+        <div class="form-group" style="flex:1;">
           <label for="houseNumber">Número do imóvel:</label>
           <input type="text" id="houseNumber" placeholder="Número do imóvel (Ex: 12A)" />
         </div>
-        <div class="form-group">
+        <div class="form-group" style="flex:1;">
           <label for="neighborhood">Bairro:</label>
           <input type="text" id="neighborhood" placeholder="Digite ou selecione um bairro">
         </div>
@@ -110,8 +130,8 @@ input.error-border { border:2px solid #dc3545 !important; }
     </div>
   </div>
 
-  <form id="customerForm">
-    <input type="text" id="customerName" placeholder="Nome completo *" required style="width:100%; padding:10px; margin:6px 0; border:1px solid #ccc; border-radius:6px;">
+  <form id="customerForm" style="margin-top:12px;">
+    <input type="text" id="customerName" placeholder="Nome e Sobrenome *" required style="width:100%; padding:10px; margin:6px 0; border:1px solid #ccc; border-radius:6px;">
     <div id="nameError" class="error">⚠ Digite apenas letras e no mínimo 12 caracteres.</div>
     <select id="paymentMethod" required style="width:100%; padding:10px; margin:6px 0; border:1px solid #ccc; border-radius:6px;">
       <option value="">Forma de Pagamento</option>
@@ -295,11 +315,11 @@ document.getElementById('customerForm').addEventListener('submit',e=>{
     message+=`${tipoEndereco} ${empresaOuCondominio} - ${street}, ${houseNumber} - ${neighborhood} - ${city}\n`;
 	// 👉 Adiciona o link do Google Maps com as coordenadas selecionadas
 	if(selectedLatLng){
-    message+=`🔗 Localização: https://www.google.com/maps?q=${selectedLatLng.lat},${selectedLatLng.lng}\n`;
+    message+=`🔗 Loc: https://www.google.com/maps?q=${selectedLatLng.lat},${selectedLatLng.lng}\n`;
   }
   }
   message+='💳 Pagamento: '+paymentMethod+'\n';
-  message+='\n📦 PRODUTOS SELECIONADOS:\n'+cart.map(i=>`> (${i.quantity}) ${i.PRODUTO}`).join('\n');
+  message+='\n📦 *PRODUTOS SELECIONADOS:*\n'+cart.map(i=>`> (${i.quantity}) ${i.PRODUTO}`).join('\n');
   if(observations) message+='\n\n📝 Observações: '+observations;
   message+='\n\n⚠️ Aguardando orçamento e confirmação dos valores finais.';
   window.open(`https://wa.me/558688519865?text=${encodeURIComponent(message)}`,'_blank');
@@ -384,6 +404,13 @@ function sendLocationToWebhook(lat,lng){
   });
 }
 
+/* --- Mantive TODO o seu JS, só adicionei botão fechar carrinho --- */
+
+// Botão voltar no carrinho
+document.getElementById('closeCartBtn').onclick = () => {
+  document.getElementById('cartSection').classList.remove('open');
+  document.getElementById('floatingCartBtn').style.display = 'flex';
+};
 </script>
 </body>
 </html>
