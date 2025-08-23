@@ -3,6 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta property="og:title" content="KTech Eletrônicos & Importados — Catálogo Oficial">
+<meta property="og:description" content="Ofertas atualizadas, retirada no local e entrega rápida. Clique e escolha seus produtos!">
+<meta property="og:image" content="https://ktecheletronicos.github.io/ktechfiles/logo_ktech_eletronicos.png">
+<meta property="og:url" content="https://ktecheletronicos.github.io/loja/">
+<meta property="og:type" content="website">
 <title>Catálogo KTech</title>
 <link rel="icon" type="image/png" href="https://ktecheletronicos.github.io/ktechfiles/logo_k.png">
 <style>
@@ -297,11 +302,37 @@ document.getElementById('customerForm').addEventListener('submit',e=>{
 });
 
 // --- CARRINHO FLUTUANTE ---
-const cartSection=document.getElementById('cartSection');
-const floatingBtn=document.getElementById('floatingCartBtn');
-document.getElementById('cartToggle').onclick=()=>{ cartSection.classList.toggle('open'); floatingBtn.style.display=cartSection.classList.contains('open')?'none':'flex'; };
-floatingBtn.onclick=()=>{ cartSection.classList.add('open'); floatingBtn.style.display='none'; };
-document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ if(cartSection.classList.contains('open')){ cartSection.classList.remove('open'); floatingBtn.style.display='flex'; } } });
+const cartSection = document.getElementById('cartSection');
+const floatingBtn = document.getElementById('floatingCartBtn');
+
+// Toggle do carrinho pelo ícone
+document.getElementById('cartToggle').onclick = () => {
+  cartSection.classList.toggle('open');
+  floatingBtn.style.display = cartSection.classList.contains('open') ? 'none' : 'flex';
+};
+
+// Abrir carrinho pelo botão flutuante
+floatingBtn.onclick = () => {
+  cartSection.classList.add('open');
+  floatingBtn.style.display = 'none';
+};
+
+// Fechar carrinho com a tecla Escape
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && cartSection.classList.contains('open')) {
+    cartSection.classList.remove('open');
+    floatingBtn.style.display = 'flex';
+  }
+});
+
+// Fechar o carrinho ao clicar fora dele
+document.addEventListener('click', e => {
+  const isClickInside = cartSection.contains(e.target) || floatingBtn.contains(e.target) || document.getElementById('cartToggle').contains(e.target);
+  if (!isClickInside && cartSection.classList.contains('open')) {
+    cartSection.classList.remove('open');
+    floatingBtn.style.display = 'flex';
+  }
+});
 
 // --- ENTREGA / MAPA ---
 document.querySelectorAll('input[name="deliveryOption"]').forEach(r=>{
@@ -348,6 +379,7 @@ function sendLocationToWebhook(lat,lng){
     method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({latitude:lat,longitude:lng})
   });
 }
+
 </script>
 </body>
 </html>
