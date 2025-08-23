@@ -593,6 +593,41 @@ body {
   box-shadow: var(--shadow);
 }
 
+/* ===== INSTRUÇÃO DO MAPA ===== */
+.map-instruction {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  padding: 12px 16px;
+  border-radius: var(--border-radius-sm);
+  margin: 12px 0;
+  text-align: center;
+  font-weight: 600;
+  font-size: 14px;
+  box-shadow: var(--shadow);
+  animation: glow 2s ease-in-out infinite alternate;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.map-instruction-icon {
+  font-size: 20px;
+  margin-right: 8px;
+  animation: bounce 1s ease-in-out infinite;
+}
+
+@keyframes glow {
+  from {
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  }
+  to {
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+  }
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
 /* ===== MODAL ===== */
 .modal {
   display: none;
@@ -749,6 +784,11 @@ body {
     margin-bottom: 16px; /* Espaço extra no final */
   }
   
+  .map-instruction {
+    font-size: 13px;
+    padding: 10px 14px;
+  }
+  
   /* Fix para viewport em dispositivos móveis */
   .cart-panel {
     height: 100vh;
@@ -790,7 +830,7 @@ body {
 <!-- HEADER -->
 <header class="header">
   <img src="https://ktecheletronicos.github.io/ktechfiles/logo_ktech_eletronicos.png" alt="KTech Logo" class="logo">
-  <h1>KTech</h1>
+  <h1>KTech Eletrônicos</h1>
   <div class="search-container">
     <input type="text" class="search-input" id="searchInput" placeholder="🔍 Buscar produtos...">
   </div>
@@ -842,6 +882,12 @@ body {
     <div id="deliveryForm" class="hidden">
       <div id="map" class="map-container"></div>
       
+      <!-- INSTRUÇÃO DESTACADA DO MAPA -->
+      <div class="map-instruction">
+        <span class="map-instruction-icon">📍</span>
+        <strong>IMPORTANTE:</strong> Arraste o pino azul no mapa até o local exato da sua entrega!
+      </div>
+      
       <label>Tipo de endereço:</label>
       <div class="radio-group" style="margin-bottom: 12px;">
         <label class="radio-option">
@@ -886,7 +932,7 @@ body {
       <textarea class="form-textarea" id="observations" placeholder="Observações (opcional)" rows="3"></textarea>
       
       <button type="submit" class="whatsapp-button" id="whatsappBtn" disabled>
-        📱 Finalizar via WhatsApp
+        📱 Orçamento via WhatsApp
       </button>
     </form>
   </div>
@@ -912,10 +958,83 @@ class KTechStore {
     this.selectedLocation = null;
     this.map = null;
     this.marker = null;
+    this.customerNameFromUrl = null;
     
     this.initializeElements();
+    this.getUrlParameters();
+    this.loadCartFromCache();
+    this.setupNameFieldFromUrl();
+    this.updateCart(); // Atualizar carrinho após carregar do cache
     this.bindEvents();
     this.loadProducts();
+  }
+  
+  getUrlParameters() {
+    const urlParams = new URLSearchParams(window.location.search);
+    this.customerNameFromUrl = urlParams.get('name');
+    
+    if (this.customerNameFromUrl) {
+      console.log('Nome recebido via URL:', this.customerNameFromUrl);
+    }
+  }
+  
+  setupNameFieldFromUrl() {
+    if (this.customerNameFromUrl) {
+      // Preencher campo automaticamente
+      if (this.customerName) {
+        this.customerName.value = this.customerNameFromUrl;
+        // Ocultar APENAS o campo de nome (input)
+        this.customerName.style.display = 'none';
+        // Ocultar APENAS a mensagem de erro do nome
+        const nameError = document.getElementById('nameError');
+        if (nameError) {
+          nameError.style.display = 'none';
+        }
+      }
+    }
+  }
+  
+  saveCartToCache() {
+    const cartData = {
+      cart: this.cart,
+      timestamp: Date.now()
+    };
+    try {
+      localStorage.setItem('ktech_cart', JSON.stringify(cartData));
+    } catch (error) {
+      console.error('Erro ao salvar carrinho no cache:', error);
+    }
+  }
+  
+  loadCartFromCache() {
+    try {
+      const cartData = localStorage.getItem('ktech_cart');
+      if (cartData) {
+        const parsed = JSON.parse(cartData);
+        const now = Date.now();
+        const thirtyHours = 30 * 60 * 60 * 1000; // 30 horas em millisegundos
+        
+        if (now - parsed.timestamp < thirtyHours) {
+          this.cart = parsed.cart || [];
+          console.log('Carrinho carregado do cache:', this.cart.length, 'itens');
+        } else {
+          // Cache expirou, limpar
+          localStorage.removeItem('ktech_cart');
+          console.log('Cache do carrinho expirou, limpando...');
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao carregar carrinho do cache:', error);
+      localStorage.removeItem('ktech_cart');
+    }
+  }
+  
+  clearCartCache() {
+    try {
+      localStorage.removeItem('ktech_cart');
+    } catch (error) {
+      console.error('Erro ao limpar cache do carrinho:', error);
+    }
   }
   
   initializeElements() {
@@ -1135,6 +1254,7 @@ class KTechStore {
       }
     }
     
+    this.saveCartToCache(); // Salvar no cache
     this.updateCart();
     this.renderProducts(this.searchInput.value ? 
       this.products.filter(p => p.PRODUTO.toLowerCase().includes(this.searchInput.value.toLowerCase())) : 
@@ -1146,6 +1266,7 @@ class KTechStore {
     const item = this.cart.find(item => item.PRODUTO === productName);
     if (item) {
       item.quantity = Math.max(1, item.quantity + delta);
+      this.saveCartToCache(); // Salvar no cache
       this.updateCart();
       this.renderProducts(this.searchInput.value ? 
         this.products.filter(p => p.PRODUTO.toLowerCase().includes(this.searchInput.value.toLowerCase())) : 
@@ -1156,6 +1277,7 @@ class KTechStore {
   
   removeFromCart(productName) {
     this.cart = this.cart.filter(item => item.PRODUTO !== productName);
+    this.saveCartToCache(); // Salvar no cache
     this.updateCart();
     this.renderProducts(this.searchInput.value ? 
       this.products.filter(p => p.PRODUTO.toLowerCase().includes(this.searchInput.value.toLowerCase())) : 
@@ -1354,19 +1476,24 @@ class KTechStore {
   }
   
   validateForm() {
-    const nameInput = this.customerName;
-    const nameError = document.getElementById('nameError');
-    const name = nameInput.value.trim();
+    let nameValid = true;
     
-    // Validate name
-    const nameValid = /^[A-Za-zÀ-ÿ ]{12,}$/.test(name);
-    
-    if (name && !nameValid) {
-      nameError.classList.add('active');
-      nameInput.classList.add('input-error');
+    // Se nome veio por URL, usar ele
+    if (this.customerNameFromUrl) {
+      nameValid = /^[A-Za-zÀ-ÿ ]{12,}$/.test(this.customerNameFromUrl);
     } else {
-      nameError.classList.remove('active');
-      nameInput.classList.remove('input-error');
+      const nameInput = this.customerName;
+      const nameError = document.getElementById('nameError');
+      const name = nameInput.value.trim();
+      nameValid = /^[A-Za-zÀ-ÿ ]{12,}$/.test(name);
+      
+      if (name && !nameValid) {
+        nameError.classList.add('active');
+        nameInput.classList.add('input-error');
+      } else {
+        nameError.classList.remove('active');
+        nameInput.classList.remove('input-error');
+      }
     }
     
     // Check if form is complete
@@ -1375,14 +1502,6 @@ class KTechStore {
                        this.cart.length > 0;
     
     this.whatsappBtn.disabled = !isFormValid;
-    
-    // Debug: log form validation
-    console.log('Form validation:', {
-      nameValid,
-      paymentSelected: this.paymentMethod.value !== '',
-      cartItems: this.cart.length,
-      isFormValid
-    });
     
     return isFormValid;
   }
@@ -1407,12 +1526,12 @@ class KTechStore {
     }
     
     try {
-      const customerName = this.customerName.value.trim();
+      const customerName = this.customerNameFromUrl || this.customerName.value.trim();
       const paymentMethod = this.paymentMethod.value;
       const observations = document.getElementById('observations').value.trim();
       const deliveryOption = document.querySelector('input[name="deliveryOption"]:checked').value;
       
-      let message = '🛒 *NOVO PEDIDO - CATÁLOGO KTECH*\n\n';
+      let message = '🛒 *NOVO ORÇAMENTO - CATÁLOGO KTECH*\n\n';
       
       if (deliveryOption === 'RETIRADA') {
         message += `👤 *Cliente:* ${customerName}\n`;
@@ -1454,7 +1573,6 @@ class KTechStore {
       }
       
       message += '\n\n⚠️ *Aguardando orçamento e confirmação dos valores finais.*';
-      message += '\n\n✅ *Obrigado por escolher a KTech!*';
       
       const whatsappUrl = `https://wa.me/558688519865?text=${encodeURIComponent(message)}`;
       
