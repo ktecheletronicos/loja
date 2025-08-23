@@ -232,11 +232,12 @@ body {
   border: none;
   border-radius: 12px;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 11px;
   cursor: pointer;
   transition: all 0.3s ease;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
 }
 
 .btn-add {
@@ -789,7 +790,7 @@ body {
 <!-- HEADER -->
 <header class="header">
   <img src="https://ktecheletronicos.github.io/ktechfiles/logo_ktech_eletronicos.png" alt="KTech Logo" class="logo">
-  <h1>KTech Eletrônicos</h1>
+  <h1>KTech</h1>
   <div class="search-container">
     <input type="text" class="search-input" id="searchInput" placeholder="🔍 Buscar produtos...">
   </div>
@@ -1068,13 +1069,9 @@ class KTechStore {
             <span class="qty-display">${cartItem.quantity}</span>
             <button class="qty-button plus-btn" data-product="${this.escapeHtml(product.PRODUTO)}">+</button>
           </div>
-          <button class="product-button btn-remove" data-product="${this.escapeHtml(product.PRODUTO)}">
-            Remover do Carrinho
-          </button>
+          <button class="product-button btn-remove" data-product="${this.escapeHtml(product.PRODUTO)}">Remover do Carrinho</button>
         ` : `
-          <button class="product-button btn-add" data-product="${this.escapeHtml(product.PRODUTO)}">
-            Adicionar ao Carrinho
-          </button>
+          <button class="product-button btn-add" data-product="${this.escapeHtml(product.PRODUTO)}">Adicionar ao Carrinho</button>
         `}
       `;
       
