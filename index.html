@@ -293,6 +293,10 @@ document.getElementById('customerForm').addEventListener('submit',e=>{
     const city=document.getElementById('city').value||'';
     message+='📍 Entrega em endereço:\n';
     message+=`${tipoEndereco} ${empresaOuCondominio} - ${street}, ${houseNumber} - ${neighborhood} - ${city}\n`;
+	// 👉 Adiciona o link do Google Maps com as coordenadas selecionadas
+	if(selectedLatLng){
+    message+=`🔗 Localização: https://www.google.com/maps?q=${selectedLatLng.lat},${selectedLatLng.lng}\n`;
+  }
   }
   message+='💳 Pagamento: '+paymentMethod+'\n';
   message+='\n📦 PRODUTOS SELECIONADOS:\n'+cart.map(i=>`> (${i.quantity}) ${i.PRODUTO}`).join('\n');
