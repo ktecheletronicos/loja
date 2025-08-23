@@ -322,13 +322,16 @@ body {
   right: -100%;
   width: 100%;
   max-width: 400px;
+  height: 100%;
   height: 100vh;
+  height: 100dvh; /* Para dispositivos móveis modernos */
   background: var(--white);
   box-shadow: -4px 0 20px rgba(0,0,0,0.15);
   z-index: 2001;
   transition: right 0.3s ease;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .cart-panel.active {
@@ -370,7 +373,11 @@ body {
 .cart-items {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 16px;
+  /* Melhor scroll no mobile */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .cart-empty {
@@ -459,6 +466,10 @@ body {
   padding: 20px;
   border-top: 1px solid rgba(0,0,0,0.1);
   background: var(--light);
+  flex-shrink: 0; /* Impede que o formulário seja comprimido */
+  max-height: 60vh; /* Limita altura máxima */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .delivery-options {
@@ -548,6 +559,11 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.5px;
   box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+  min-height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
 }
 
 .whatsapp-button:hover:not(:disabled) {
@@ -555,11 +571,16 @@ body {
   box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
 }
 
+.whatsapp-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
 .whatsapp-button:disabled {
   background: var(--gray);
   cursor: not-allowed;
   transform: none;
-  box-shadow: none;
+  box-shadow: 0 2px 8px rgba(100, 116, 139, 0.2);
+  opacity: 0.7;
 }
 
 /* ===== MAPA ===== */
@@ -709,6 +730,33 @@ body {
   .cart-panel {
     width: 100%;
     max-width: none;
+    right: -100%;
+  }
+  
+  .cart-panel.active {
+    right: 0;
+  }
+  
+  .cart-form {
+    padding: 16px;
+    max-height: 50vh;
+  }
+  
+  .whatsapp-button {
+    font-size: 15px;
+    padding: 14px;
+    margin-bottom: 16px; /* Espaço extra no final */
+  }
+  
+  /* Fix para viewport em dispositivos móveis */
+  .cart-panel {
+    height: 100vh;
+    height: -webkit-fill-available;
+  }
+  
+  /* Garantir que o botão seja sempre visível */
+  .cart-form {
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   }
 }
 
@@ -1330,64 +1378,103 @@ class KTechStore {
                        this.cart.length > 0;
     
     this.whatsappBtn.disabled = !isFormValid;
+    
+    // Debug: log form validation
+    console.log('Form validation:', {
+      nameValid,
+      paymentSelected: this.paymentMethod.value !== '',
+      cartItems: this.cart.length,
+      isFormValid
+    });
+    
+    return isFormValid;
   }
   
   handleFormSubmit(e) {
     e.preventDefault();
+    e.stopPropagation();
     
-    if (!this.validateForm() || this.cart.length === 0) return;
+    console.log('Form submit triggered');
+    console.log('Cart items:', this.cart.length);
     
-    const customerName = this.customerName.value.trim();
-    const paymentMethod = this.paymentMethod.value;
-    const observations = document.getElementById('observations').value.trim();
-    const deliveryOption = document.querySelector('input[name="deliveryOption"]:checked').value;
-    
-    let message = '🛒 *NOVO PEDIDO - CATÁLOGO KTECH*\n\n';
-    
-    if (deliveryOption === 'RETIRADA') {
-      message += `👤 *Cliente:* ${customerName}\n`;
-      message += '📍 *Entrega:* Retirada na loja\n';
-    } else {
-      const tipoEndereco = document.querySelector('input[name="tipoEndereco"]:checked')?.value || '';
-      const empresaOuCondominio = document.getElementById('empresaOuCondominio').value || '';
-      const street = document.getElementById('street').value || '';
-      const houseNumber = document.getElementById('houseNumber').value || '';
-      const neighborhood = document.getElementById('neighborhood').value || '';
-      const city = document.getElementById('city').value || '';
-      
-      message += `👤 *Cliente:* ${customerName}\n`;
-      message += '📍 *Entrega em endereço:*\n';
-      
-      if (empresaOuCondominio) {
-        message += `${tipoEndereco}: ${empresaOuCondominio}\n`;
-      }
-      
-      message += `${street}, ${houseNumber}\n`;
-      message += `${neighborhood} - ${city}\n`;
-      
-      if (this.selectedLocation) {
-        message += `🗺️ *Localização:* https://www.google.com/maps?q=${this.selectedLocation.lat},${this.selectedLocation.lng}\n`;
-      }
+    if (!this.validateForm()) {
+      console.log('Form validation failed');
+      this.showNotification('Por favor, preencha todos os campos obrigatórios', 'danger');
+      return;
     }
     
-    message += `💳 *Pagamento:* ${paymentMethod}\n`;
-    
-    const totalItems = this.cart.reduce((sum, item) => sum + item.quantity, 0);
-    message += `\n📦 *PRODUTOS (${totalItems} itens):*\n`;
-    
-    this.cart.forEach(item => {
-      message += `• ${item.quantity}x ${item.PRODUTO}\n`;
-    });
-    
-    if (observations) {
-      message += `\n📝 *Observações:* ${observations}`;
+    if (this.cart.length === 0) {
+      console.log('Cart is empty');
+      this.showNotification('Adicione produtos ao carrinho primeiro', 'danger');
+      return;
     }
     
-    message += '\n\n⚠️ *Aguardando orçamento e confirmação dos valores finais.*';
-    message += '\n\n✅ *Obrigado por escolher a KTech!*';
-    
-    const whatsappUrl = `https://wa.me/558688519865?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
+    try {
+      const customerName = this.customerName.value.trim();
+      const paymentMethod = this.paymentMethod.value;
+      const observations = document.getElementById('observations').value.trim();
+      const deliveryOption = document.querySelector('input[name="deliveryOption"]:checked').value;
+      
+      let message = '🛒 *NOVO PEDIDO - CATÁLOGO KTECH*\n\n';
+      
+      if (deliveryOption === 'RETIRADA') {
+        message += `👤 *Cliente:* ${customerName}\n`;
+        message += '📍 *Entrega:* Retirada na loja\n';
+      } else {
+        const tipoEndereco = document.querySelector('input[name="tipoEndereco"]:checked')?.value || '';
+        const empresaOuCondominio = document.getElementById('empresaOuCondominio').value || '';
+        const street = document.getElementById('street').value || '';
+        const houseNumber = document.getElementById('houseNumber').value || '';
+        const neighborhood = document.getElementById('neighborhood').value || '';
+        const city = document.getElementById('city').value || '';
+        
+        message += `👤 *Cliente:* ${customerName}\n`;
+        message += '📍 *Entrega em endereço:*\n';
+        
+        if (empresaOuCondominio) {
+          message += `${tipoEndereco}: ${empresaOuCondominio}\n`;
+        }
+        
+        message += `${street}, ${houseNumber}\n`;
+        message += `${neighborhood} - ${city}\n`;
+        
+        if (this.selectedLocation) {
+          message += `🗺️ *Localização:* https://www.google.com/maps?q=${this.selectedLocation.lat},${this.selectedLocation.lng}\n`;
+        }
+      }
+      
+      message += `💳 *Pagamento:* ${paymentMethod}\n`;
+      
+      const totalItems = this.cart.reduce((sum, item) => sum + item.quantity, 0);
+      message += `\n📦 *PRODUTOS (${totalItems} itens):*\n`;
+      
+      this.cart.forEach(item => {
+        message += `• ${item.quantity}x ${item.PRODUTO}\n`;
+      });
+      
+      if (observations) {
+        message += `\n📝 *Observações:* ${observations}`;
+      }
+      
+      message += '\n\n⚠️ *Aguardando orçamento e confirmação dos valores finais.*';
+      message += '\n\n✅ *Obrigado por escolher a KTech!*';
+      
+      const whatsappUrl = `https://wa.me/558688519865?text=${encodeURIComponent(message)}`;
+      
+      console.log('Opening WhatsApp with URL:', whatsappUrl);
+      
+      // Show success message before opening WhatsApp
+      this.showNotification('Redirecionando para o WhatsApp...', 'success');
+      
+      // Small delay to ensure notification shows
+      setTimeout(() => {
+        window.open(whatsappUrl, '_blank');
+      }, 500);
+      
+    } catch (error) {
+      console.error('Error in form submit:', error);
+      this.showNotification('Erro ao processar pedido. Tente novamente.', 'danger');
+    }
   }
   
   showNotification(message, type = 'success') {
