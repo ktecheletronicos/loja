@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catálogo KTech</title>
+<link rel="icon" type="image/png" href="https://ktecheletronicos.github.io/ktechfiles/logo_k.png">
+<style>
+body { font-family: 'Segoe UI', Arial, sans-serif; margin:0; padding:0; background:#f4f7fb; color:#333; }
+/* ===== HEADER ===== */
+.header { position: fixed; top:0; left:0; right:0; background: linear-gradient(90deg, #0d6efd, #0a58ca); color:#fff; padding:10px 14px; display:flex; align-items:center; gap:10px; box-shadow:0 2px 5px rgba(0,0,0,0.2); z-index:1000; }
+.header img.logo { height:34px; width:auto; border-radius:6px; background:#fff; padding:2px; }
+.header h1 { font-size:15px; margin:0; flex:1; font-weight:bold; white-space:nowrap; }
+#searchInput { flex:2; padding:8px; border:none; border-radius:20px; outline:none; font-size:14px; }
+.cart-icon { position:relative; background:#fff; color:#0d6efd; border:none; border-radius:50%; width:42px; height:42px; font-size:20px; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 4px rgba(0,0,0,0.2); }
+.cart-count { position:absolute; top:-5px; right:-5px; background:#dc3545; color:#fff; font-size:12px; border-radius:50%; padding:2px 6px; }
+/* ===== PRODUTOS ===== */
+.products-container { padding:80px 12px 100px; }
+.products-section { display:grid; grid-template-columns:repeat(auto-fill, minmax(160px,1fr)); gap:15px; }
+.product-card { background:#fff; border-radius:12px; padding:12px; text-align:center; box-shadow:0 2px 8px rgba(0,0,0,0.08); transition: transform 0.2s ease; }
+.product-card:hover { transform: translateY(-3px); }
+.product-card img { width:100%; height:130px; object-fit:cover; border-radius:10px; cursor:pointer; }
+.product-card h4 { font-size:14px; margin:10px 0; color:#0a58ca; }
+button { padding:7px 12px; margin-top:6px; cursor:pointer; border:none; border-radius:6px; background:#0d6efd; color:#fff; font-weight:500; }
+button:hover { background:#0a58ca; }
+.added { background:#dc3545 !important; }
+.qty-controls { display:flex; justify-content:center; align-items:center; gap:6px; margin-top:6px; }
+.qty-btn { width:32px; height:32px; font-size:18px; border-radius:50%; background:#0d6efd; color:#fff; }
+/* ===== CARRINHO ===== */
+.cart-section { position:fixed; bottom:0; left:0; right:0; background:#fff; border-top:3px solid #0d6efd; max-height:65%; overflow-y:auto; transform:translateY(100%); transition:transform 0.3s ease; padding:18px; z-index:2000; border-radius:12px 12px 0 0; box-shadow:0 -4px 10px rgba(0,0,0,0.15); }
+.cart-section.open { transform:translateY(0); }
+.cart-section h2 { margin:0 0 12px; font-size:16px; color:#0a58ca; }
+.cart-item { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-size:14px; gap:8px; }
+.cart-qty { display:flex; align-items:center; gap:6px; }
+#whatsappBtn { width:100%; margin-top:12px; padding:12px; font-size:16px; background:#0d6efd; border-radius:8px; }
+#whatsappBtn:hover { background:#0a58ca; }
+/* ===== VALIDAÇÃO ===== */
+.error { color:#dc3545; font-size:13px; margin-top:4px; display:none; }
+input.error-border { border:2px solid #dc3545 !important; }
+/* ===== MODAL ===== */
+.modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); justify-content:center; align-items:center; z-index:5000; }
+.modal img { max-width:90%; max-height:80%; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.5); }
+.modal button { position:absolute; top:20px; right:20px; background:#dc3545; border:none; color:#fff; padding:10px 14px; border-radius:8px; font-size:16px; cursor:pointer; }
+/* ===== BOTÃO FLUTUANTE ===== */
+#floatingCartBtn { position: fixed; bottom: 20px; right: 20px; background: #28a745; color: #fff; border: none; border-radius: 50px; padding: 12px 18px; font-size: 16px; cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.2); z-index: 3000; display: flex; align-items: center; gap: 8px; }
+#floatingCartBtn:hover { background: #218838; }
+</style>
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <img src="https://ktecheletronicos.github.io/ktechfiles/logo_ktech_eletronicos.png" alt="KTech Logo" class="logo">
+  <h1>KTech Eletrônicos e Importados</h1>
+  <input type="text" id="searchInput" placeholder="🔍 Buscar...">
+  <button class="cart-icon" id="cartToggle">🛒 <span class="cart-count" id="cartCount">0</span></button>
+</div>
+
+<!-- PRODUTOS -->
+<div class="products-container">
+  <div class="products-section" id="productsContainer"></div>
+</div>
+
+<!-- CARRINHO -->
+<div class="cart-section" id="cartSection">
+  <h2>Meu Carrinho</h2>
+  <div id="cartItems">Carrinho vazio</div>
+
+  <div style="margin:10px 0; padding:10px; border:1px solid #ccc; border-radius:8px; background:#f9f9f9;">
+    <label style="font-weight:bold;">Escolha como deseja receber o pedido:</label>
+    <div style="display:flex; gap:12px; margin-top:8px;">
+      <label><input type="radio" name="deliveryOption" value="RETIRADA" checked> Buscar no local</label>
+      <label><input type="radio" name="deliveryOption" value="ENTREGA"> Entrega em endereço</label>
+    </div>
+  </div>
+
+  <div id="deliveryForm" style="display:none; margin-top:12px;">
+    <div id="map" style="height:250px; border-radius:8px; margin-bottom:10px;">Carregando mapa...</div>
+    <button type="button" id="confirmLocationBtn">Confirmo que a localização está correta</button>
+    <div class="form-container" style="margin-top:10px;">
+      <label>Tipo de endereço:</label>
+      <div class="radio-group">
+        <label><input type="radio" name="tipoEndereco" value="CONDOMINIO">🏘️ Condomínio</label>
+        <label><input type="radio" name="tipoEndereco" value="EMPRESA">🏢 Empresa</label>
+        <label><input type="radio" name="tipoEndereco" value="CASA">🏠 Casa</label>
+      </div>
+      <div id="empresaOuCondominioContainer" style="display:none;">
+        <label for="empresaOuCondominio">Nome da empresa ou condomínio:</label>
+        <input type="text" id="empresaOuCondominio" placeholder="Digite o nome da empresa ou condomínio" />
+      </div>
+      <label for="street">Nome da rua ou quadra:</label>
+      <input type="text" id="street" placeholder="Exemplo: Av. Frei Serafim, Quadra 22" />
+      <div class="form-row">
+        <div class="form-group">
+          <label for="houseNumber">Número do imóvel:</label>
+          <input type="text" id="houseNumber" placeholder="Número do imóvel (Ex: 12A)" />
+        </div>
+        <div class="form-group">
+          <label for="neighborhood">Bairro:</label>
+          <input type="text" id="neighborhood" placeholder="Digite ou selecione um bairro">
+        </div>
+      </div>
+      <input type="hidden" id="city" name="city">
+    </div>
+  </div>
+
+  <form id="customerForm">
+    <input type="text" id="customerName" placeholder="Nome completo *" required style="width:100%; padding:10px; margin:6px 0; border:1px solid #ccc; border-radius:6px;">
+    <div id="nameError" class="error">⚠ Digite apenas letras e no mínimo 12 caracteres.</div>
+    <select id="paymentMethod" required style="width:100%; padding:10px; margin:6px 0; border:1px solid #ccc; border-radius:6px;">
+      <option value="">Forma de Pagamento</option>
+      <option value="PIX">PIX</option>
+      <option value="Dinheiro">Dinheiro</option>
+      <option value="Cartão">Cartão (acréscimo)</option>
+      <option value="Link">Link (acréscimo)</option>
+    </select>
+    <textarea id="observations" placeholder="Observações" style="width:100%; padding:10px; margin:6px 0; border:1px solid #ccc; border-radius:6px;"></textarea>
+    <button type="submit" id="whatsappBtn" disabled>📱 Finalizar pelo WhatsApp</button>
+  </form>
+</div>
+
+<!-- MODAL DE IMAGEM -->
+<div class="modal" id="imageModal">
+  <img id="modalImage" src="" alt="Produto">
+  <button type="button" id="closeModalBtn">❌ Fechar</button>
+</div>
+
+<!-- BOTÃO FLUTUANTE -->
+<button id="floatingCartBtn">🛒 Carrinho (<span id="floatingCartCount">0</span>)</button>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+let allProducts = [];
+let cart = [];
+let selectedLatLng = null;
+let marker = null;
+
+// --- UTILS ---
+function escapeHtml(str){
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+
+// --- CARRINHO ---
+function updateCartSection(){
+  const cartItems = document.getElementById('cartItems');
+  document.getElementById('cartCount').textContent = cart.length;
+  document.getElementById('floatingCartCount').textContent = cart.length;
+
+  if(cart.length===0){ cartItems.textContent='Carrinho vazio'; return; }
+
+  cartItems.innerHTML='';
+  cart.forEach(item=>{
+    const div = document.createElement('div');
+    div.className='cart-item';
+    div.innerHTML=`
+      <span>${escapeHtml(item.PRODUTO)}</span>
+      <div class="cart-qty">
+        <button type="button" class="qty-btn ci-minus">-</button>
+        <span class="ci-qty">${item.quantity}</span>
+        <button type="button" class="qty-btn ci-plus">+</button>
+        <button class="ci-remove">x</button>
+      </div>
+    `;
+    div.querySelector('.ci-minus').onclick=()=>changeQuantity(item.PRODUTO,-1);
+    div.querySelector('.ci-plus').onclick=()=>changeQuantity(item.PRODUTO,1);
+    div.querySelector('.ci-remove').onclick=()=>removeFromCart(item.PRODUTO);
+    cartItems.appendChild(div);
+  });
+}
+
+function toggleCartByName(name){
+  const existing = cart.find(i=>i.PRODUTO===name);
+  if(existing){ cart=cart.filter(i=>i.PRODUTO!==name); }
+  else{ const prod = allProducts.find(p=>p.PRODUTO===name); if(prod) cart.push({...prod, quantity:1}); }
+  renderProducts(allProducts);
+  updateCartSection();
+}
+
+function removeFromCart(name){ cart=cart.filter(i=>i.PRODUTO!==name); renderProducts(allProducts); updateCartSection(); }
+function changeQuantity(name,delta){ const item=cart.find(i=>i.PRODUTO===name); if(!item) return; item.quantity=Math.max(1,item.quantity+delta); renderProducts(allProducts); updateCartSection(); }
+
+// --- MODAL ---
+function openModal(src){ document.getElementById('modalImage').src=src; document.getElementById('imageModal').style.display='flex'; }
+document.getElementById('closeModalBtn').onclick=()=>{ document.getElementById('imageModal').style.display='none'; }
+document.getElementById('imageModal').onclick=e=>{ if(e.target===document.getElementById('imageModal')) document.getElementById('imageModal').style.display='none'; }
+
+// --- FILTRO ---
+document.getElementById('searchInput').addEventListener('input',()=>{
+  const term=document.getElementById('searchInput').value.toLowerCase().trim();
+  renderProducts(term? allProducts.filter(p=>(p.PRODUTO||'').toLowerCase().includes(term)) : allProducts);
+});
+
+// --- RENDERIZA PRODUTOS ---
+function renderProducts(products){
+  const container = document.getElementById('productsContainer');
+  container.innerHTML = '';
+
+  products.forEach(p => {
+    const card = document.createElement('div');
+    card.className = 'product-card';
+
+    const inCart = cart.find(i => i.PRODUTO === p.PRODUTO);
+
+    card.innerHTML = `
+      <img src="${p.FOTO}" alt="${escapeHtml(p.PRODUTO)}" class="product-img">
+      <h4>${escapeHtml(p.PRODUTO)}</h4>
+      ${inCart ? `
+        <div class="qty-controls">
+          <button type="button" class="qty-btn minus">-</button>
+          <span class="qty-val">${inCart.quantity}</span>
+          <button type="button" class="qty-btn plus">+</button>
+        </div>` : ''}
+      <button type="button" class="toggle-btn ${inCart ? 'added' : ''}">${inCart ? 'Remover' : 'Adicionar'}</button>
+    `;
+
+    card.querySelector('.product-img').onclick = () => openModal(p.FOTO);
+    card.querySelector('.toggle-btn').onclick = () => toggleCartByName(p.PRODUTO);
+    if (inCart) {
+      card.querySelector('.minus').onclick = () => changeQuantity(p.PRODUTO, -1);
+      card.querySelector('.plus').onclick = () => changeQuantity(p.PRODUTO, 1);
+    }
+
+    container.appendChild(card);
+  });
+}
+
+
+// --- FETCH PRODUTOS ---
+async function fetchProducts(){
+  try {
+    const res = await fetch('https://webhookn8n.ktecheletronicos.com.br/webhook/produtos');
+    const data = await res.json();
+
+    // Agora data já é um array de produtos diretamente
+    allProducts = Array.isArray(data) ? data.filter(p => p.PRODUTO && p.FOTO) : [];
+
+    // Inicializa quantity
+    allProducts = allProducts.map(p => ({ ...p, quantity: 0 }));
+
+    renderProducts(allProducts);
+    updateCartSection();
+  } catch(err){
+    console.error('Erro ao buscar produtos:', err);
+  }
+}
+
+
+
+fetchProducts();
+
+// --- FORMULÁRIO ---
+function validateName(){
+  const nameInput=document.getElementById('customerName');
+  const value=nameInput.value.trim();
+  const valid=/^[A-Za-zÀ-ÿ ]{12,}$/.test(value);
+  document.getElementById('nameError').style.display = valid?'none':'block';
+  nameInput.classList.toggle('error-border',!valid);
+  return valid;
+}
+function updateWhatsAppButton(){
+  const nameValid=validateName();
+  const payment=document.getElementById('paymentMethod').value;
+  document.getElementById('whatsappBtn').disabled = !nameValid || payment==='' || cart.length===0;
+}
+document.getElementById('customerName').addEventListener('input',updateWhatsAppButton);
+document.getElementById('paymentMethod').addEventListener('change',updateWhatsAppButton);
+
+document.getElementById('customerForm').addEventListener('submit',e=>{
+  e.preventDefault(); if(!validateName()) return;
+  const customerName=document.getElementById('customerName').value.trim();
+  const paymentMethod=document.getElementById('paymentMethod').value;
+  const observations=document.getElementById('observations').value.trim();
+  const deliveryOption=document.querySelector('input[name="deliveryOption"]:checked').value;
+  let message='🛒 NOVO PEDIDO - CATÁLOGO\n\n';
+  if(deliveryOption==='RETIRADA'){ message+='👤 Cliente: '+customerName+'\n'; }
+  else{
+    const tipoEndereco=document.querySelector('input[name="tipoEndereco"]:checked')?.value||'';
+    const empresaOuCondominio=document.getElementById('empresaOuCondominio')?.value||'';
+    const street=document.getElementById('street').value||'';
+    const houseNumber=document.getElementById('houseNumber').value||'';
+    const neighborhood=document.getElementById('neighborhood').value||'';
+    const city=document.getElementById('city').value||'';
+    message+='📍 Entrega em endereço:\n';
+    message+=`${tipoEndereco} ${empresaOuCondominio} - ${street}, ${houseNumber} - ${neighborhood} - ${city}\n`;
+  }
+  message+='💳 Pagamento: '+paymentMethod+'\n';
+  message+='\n📦 PRODUTOS SELECIONADOS:\n'+cart.map(i=>`> (${i.quantity}) ${i.PRODUTO}`).join('\n');
+  if(observations) message+='\n\n📝 Observações: '+observations;
+  message+='\n\n⚠️ Aguardando orçamento e confirmação dos valores finais.';
+  window.open(`https://wa.me/558688519865?text=${encodeURIComponent(message)}`,'_blank');
+});
+
+// --- CARRINHO FLUTUANTE ---
+const cartSection=document.getElementById('cartSection');
+const floatingBtn=document.getElementById('floatingCartBtn');
+document.getElementById('cartToggle').onclick=()=>{ cartSection.classList.toggle('open'); floatingBtn.style.display=cartSection.classList.contains('open')?'none':'flex'; };
+floatingBtn.onclick=()=>{ cartSection.classList.add('open'); floatingBtn.style.display='none'; };
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ if(cartSection.classList.contains('open')){ cartSection.classList.remove('open'); floatingBtn.style.display='flex'; } } });
+
+// --- ENTREGA / MAPA ---
+document.querySelectorAll('input[name="deliveryOption"]').forEach(r=>{
+  r.addEventListener('change',()=>{ 
+    if(r.value==='ENTREGA'){ document.getElementById('deliveryForm').style.display='block'; initMap(-5.090000,-42.811000); } 
+    else { document.getElementById('deliveryForm').style.display='none'; }
+  });
+});
+document.querySelectorAll('input[name="tipoEndereco"]').forEach(r=>{
+  r.addEventListener('change',()=>{ document.getElementById('empresaOuCondominioContainer').style.display=(r.value==='CASA')?'none':'block'; });
+});
+
+function initMap(defaultLat,defaultLng){
+  const map=L.map('map').setView([defaultLat,defaultLng],16);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{ attribution:'&copy; OpenStreetMap' }).addTo(map);
+  marker=L.marker([defaultLat,defaultLng],{draggable:true}).addTo(map);
+  selectedLatLng=marker.getLatLng();
+
+  if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(pos=>{
+      const lat=pos.coords.latitude, lng=pos.coords.longitude;
+      map.setView([lat,lng],16); marker.setLatLng([lat,lng]); selectedLatLng=marker.getLatLng();
+      fillAddressFromLatLng(lat,lng); sendLocationToWebhook(lat,lng);
+    });
+  } else { fillAddressFromLatLng(defaultLat,defaultLng); }
+
+  marker.on('dragend',e=>{ selectedLatLng=e.target.getLatLng(); fillAddressFromLatLng(selectedLatLng.lat,selectedLatLng.lng); sendLocationToWebhook(selectedLatLng.lat,selectedLatLng.lng); });
+}
+
+function fillAddressFromLatLng(lat,lng){
+  fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1&lang=pt-br`)
+  .then(res=>res.json())
+  .then(data=>{
+    const addr=data.address;
+    if(addr.road) document.getElementById('street').value=addr.road;
+    if(addr.suburb) document.getElementById('neighborhood').value=addr.suburb;
+    if(addr.house_number) document.getElementById('houseNumber').value=addr.house_number;
+    document.getElementById('city').value=`${addr.city||addr.town||''}`;
+  });
+}
+
+function sendLocationToWebhook(lat,lng){
+  fetch('https://webhookn8n.ktecheletronicos.com.br/webhook/location',{
+    method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({latitude:lat,longitude:lng})
+  });
+}
+</script>
+</body>
+</html>
