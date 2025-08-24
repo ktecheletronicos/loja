@@ -1532,6 +1532,17 @@ class KTechStore {
       const deliveryOption = document.querySelector('input[name="deliveryOption"]:checked').value;
       
       let message = '🛒 *NOVO ORÇAMENTO - CATÁLOGO KTECH*\n\n';
+
+      const totalItems = this.cart.reduce((sum, item) => sum + item.quantity, 0);
+      message += `\n📦 *PRODUTOS (${totalItems} itens):*\n`;
+      
+      this.cart.forEach(item => {
+        message += `• ${item.quantity}x ${item.PRODUTO}\n`;
+      });
+      
+      if (observations) {
+        message += `\n📝 *Observações:* ${observations}\n\n`;
+      }
       
       if (deliveryOption === 'RETIRADA') {
         message += `👤 *Cliente:* ${customerName}\n`;
@@ -1548,11 +1559,10 @@ class KTechStore {
         message += '📍 *Entrega em endereço:*\n';
         
         if (empresaOuCondominio) {
-          message += `${tipoEndereco}: ${empresaOuCondominio}\n`;
+          message += `${empresaOuCondominio} - `;
         }
         
-        message += `${street}, ${houseNumber}\n`;
-        message += `${neighborhood} - ${city}\n`;
+        message += `${street}, ${houseNumber} - ${neighborhood} - ${city}\n`;
         
         if (this.selectedLocation) {
           message += `🗺️ *Localização:* https://www.google.com/maps?q=${this.selectedLocation.lat},${this.selectedLocation.lng}\n`;
@@ -1561,16 +1571,6 @@ class KTechStore {
       
       message += `💳 *Pagamento:* ${paymentMethod}\n`;
       
-      const totalItems = this.cart.reduce((sum, item) => sum + item.quantity, 0);
-      message += `\n📦 *PRODUTOS (${totalItems} itens):*\n`;
-      
-      this.cart.forEach(item => {
-        message += `• ${item.quantity}x ${item.PRODUTO}\n`;
-      });
-      
-      if (observations) {
-        message += `\n📝 *Observações:* ${observations}`;
-      }
       
       message += '\n\n⚠️ *Aguardando orçamento e confirmação dos valores finais.*';
       
