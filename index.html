@@ -1539,13 +1539,13 @@ class KTechStore {
       this.cart.forEach(item => {
         message += `• ${item.quantity}x ${item.PRODUTO}\n`;
       });
-      
+	        
       if (observations) {
         message += `\n📝 *Observações:* ${observations}\n\n`;
       }
       
       if (deliveryOption === 'RETIRADA') {
-        message += `👤 *Cliente:* ${customerName}\n`;
+        message += `\n👤 *Cliente:* ${customerName}\n`;
         message += '📍 *Entrega:* Retirada na loja\n';
       } else {
         const tipoEndereco = document.querySelector('input[name="tipoEndereco"]:checked')?.value || '';
