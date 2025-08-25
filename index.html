@@ -674,107 +674,113 @@ class KTechStore {
   }
   
   async fillAddressFromLocation(lat, lng) {
-    console.log('Filling address for:', lat, lng);
-    
-    // Cancelar requisição anterior se existir
-    if (this.addressFetchTimeout) {
-        clearTimeout(this.addressFetchTimeout);
-    }
-    
-    // Debounce para evitar muitas requisições
-    this.addressFetchTimeout = setTimeout(async () => {
-        try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 segundos timeout
-            
-            const response = await fetch(
-                `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1&lang=pt-br&accept-language=pt-br,pt,en`,
-                {
-                    signal: controller.signal,
-                    // REMOVA O HEADER 'User-Agent'
-                    // headers: {
-                    //   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36'
-                    // }
-                }
-            );
-            
-            clearTimeout(timeoutId);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-            }
-            
-            const data = await response.json();
-            console.log('Address data received:', data);
-            
-            if (data && data.address) {
-                const addr = data.address;
-                
-                const streetField = document.getElementById('street');
-                const neighborhoodField = document.getElementById('neighborhood');
-                const houseNumberField = document.getElementById('houseNumber');
-                const cityField = document.getElementById('city');
-                
-                if (streetField) streetField.value = '';
-                if (neighborhoodField) neighborhoodField.value = '';
-                if (houseNumberField) houseNumberField.value = '';
-                if (cityField) cityField.value = '';
-                
-                if (addr.road && streetField) {
-                    streetField.value = addr.road;
-                    console.log('Street filled:', addr.road);
-                }
-                
-                if (addr.house_number && houseNumberField) {
-                    houseNumberField.value = addr.house_number;
-                    console.log('House number filled:', addr.house_number);
-                }
-                
-                const neighborhood = addr.suburb || addr.neighbourhood || addr.residential || addr.quarter || '';
-                if (neighborhood && neighborhoodField) {
-                    neighborhoodField.value = neighborhood;
-                    console.log('Neighborhood filled:', neighborhood);
-                }
-                
-                const city = addr.city || addr.town || addr.municipality || addr.village || '';
-                if (city && cityField) {
-                    cityField.value = city;
-                    console.log('City filled:', city);
-                }
-            } else {
-                console.warn('No address data in response');
-            }
-        } catch (error) {
-            console.error('Error fetching address:', error);
-            
-            // Em caso de erro, tentar um serviço alternativo
-            try {
-                const fallbackResponse = await fetch(
-                    `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=pt`
-                );
-                const fallbackData = await fallbackResponse.json();
-                
-                if (fallbackData) {
-                    const streetField = document.getElementById('street');
-                    const neighborhoodField = document.getElementById('neighborhood');
-                    const cityField = document.getElementById('city');
-                    
-                    if (fallbackData.locality && neighborhoodField) {
-                        neighborhoodField.value = fallbackData.locality;
-                    }
-                    
-                    if (fallbackData.city && cityField) {
-                        cityField.value = fallbackData.city;
-                    }
-                    
-                    console.log('Fallback address filled');
-                }
-            } catch (fallbackError) {
-                console.error('Fallback geocoding also failed:', fallbackError);
-            }
+  console.log('Filling address for:', lat, lng);
+
+  // Cancelar requisição anterior se existir
+  if (this.addressFetchTimeout) {
+    clearTimeout(this.addressFetchTimeout);
+  }
+
+  // Debounce para evitar muitas requisições
+  this.addressFetchTimeout = setTimeout(async () => {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 segundos timeout
+
+      const response = await fetch(
+        `https://webhookn8n.ktecheletronicos.com.br/webhook/reverse-geocode?lat=${lat}&lng=${lng}`,
+        { signal: controller.signal }
+      );
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Address data received:', data);
+
+      // Agora acessa o endereço dentro de data.body
+      if (data && data.body && data.body.address) {
+        const addr = data.body.address;
+
+        // Limpar campos antes de preencher
+        const streetField = document.getElementById('street');
+        const neighborhoodField = document.getElementById('neighborhood');
+        const houseNumberField = document.getElementById('houseNumber');
+        const cityField = document.getElementById('city');
+
+        if (streetField) streetField.value = '';
+        if (neighborhoodField) neighborhoodField.value = '';
+        if (houseNumberField) houseNumberField.value = '';
+        if (cityField) cityField.value = '';
+
+        // Preencher com novos dados
+        if (addr.road && streetField) {
+          streetField.value = addr.road;
+          console.log('Street filled:', addr.road);
         }
-    }, 500);
+
+        if (addr.house_number && houseNumberField) {
+          houseNumberField.value = addr.house_number;
+          console.log('House number filled:', addr.house_number);
+        }
+
+        // Bairro (tenta várias opções)
+        const neighborhood =
+          addr.suburb ||
+          addr.neighbourhood ||
+          addr.residential ||
+          addr.quarter ||
+          '';
+        if (neighborhood && neighborhoodField) {
+          neighborhoodField.value = neighborhood;
+          console.log('Neighborhood filled:', neighborhood);
+        }
+
+        // Cidade
+        const city =
+          addr.city || addr.town || addr.municipality || addr.village || '';
+        if (city && cityField) {
+          cityField.value = city;
+          console.log('City filled:', city);
+        }
+      } else {
+        console.warn('No address data in response');
+      }
+    } catch (error) {
+      console.error('Error fetching address:', error);
+
+      // Fallback se o webhook falhar
+      try {
+        const fallbackResponse = await fetch(
+          `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=pt`
+        );
+        const fallbackData = await fallbackResponse.json();
+
+        if (fallbackData) {
+          const streetField = document.getElementById('street');
+          const neighborhoodField = document.getElementById('neighborhood');
+          const cityField = document.getElementById('city');
+
+          if (fallbackData.locality && neighborhoodField) {
+            neighborhoodField.value = fallbackData.locality;
+          }
+
+          if (fallbackData.city && cityField) {
+            cityField.value = fallbackData.city;
+          }
+
+          console.log('Fallback address filled');
+        }
+      } catch (fallbackError) {
+        console.error('Fallback geocoding also failed:', fallbackError);
+      }
+    }
+  }, 500); // Aguarda 500ms antes de fazer a requisição
 }
+
   
   async sendLocationToWebhook(lat, lng) {
     try {
