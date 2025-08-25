@@ -146,6 +146,7 @@ class KTechStore {
     this.map = null;
     this.marker = null;
     this.customerNameFromUrl = null;
+    this.addressFetchTimeout = null;
     
     this.initializeElements();
     this.getUrlParameters();
@@ -573,7 +574,10 @@ class KTechStore {
   handleDeliveryOption(option) {
     if (option === 'ENTREGA') {
       this.deliveryForm.classList.remove('hidden');
-      this.initializeMap();
+      // Aguardar um frame para garantir que o elemento esteja visível
+      setTimeout(() => {
+        this.initializeMap();
+      }, 100);
     } else {
       this.deliveryForm.classList.add('hidden');
     }
@@ -593,70 +597,203 @@ class KTechStore {
     if (this.map) return;
     
     const mapContainer = document.getElementById('map');
+    if (!mapContainer || mapContainer.offsetWidth === 0) {
+      console.log('Map container not ready, retrying...');
+      setTimeout(() => this.initializeMap(), 200);
+      return;
+    }
+    
     const defaultLat = -5.090000;
     const defaultLng = -42.811000;
     
     this.map = L.map(mapContainer).setView([defaultLat, defaultLng], 16);
     
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors'
+      attribution: '&copy; OpenStreetMap contributors',
+      maxZoom: 19
     }).addTo(this.map);
     
-    this.marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(this.map);
+    this.marker = L.marker([defaultLat, defaultLng], { 
+      draggable: true,
+      riseOnHover: true 
+    }).addTo(this.map);
+    
     this.selectedLocation = this.marker.getLatLng();
     
-    // Try to get user's location
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const lat = position.coords.latitude;
-          const lng = position.coords.longitude;
-          this.map.setView([lat, lng], 16);
-          this.marker.setLatLng([lat, lng]);
-          this.selectedLocation = this.marker.getLatLng();
-          this.fillAddressFromLocation(lat, lng);
-          this.sendLocationToWebhook(lat, lng);
-        },
-        (error) => {
-          console.log('Geolocation error:', error);
-          this.fillAddressFromLocation(defaultLat, defaultLng);
-        }
-      );
-    } else {
-      this.fillAddressFromLocation(defaultLat, defaultLng);
-    }
+    // Aguardar o mapa carregar completamente
+    this.map.whenReady(() => {
+      console.log('Map is ready');
+      
+      // Try to get user's location
+      if (navigator.geolocation) {
+        console.log('Requesting user location...');
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            console.log('Got user location:', position.coords);
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            this.map.setView([lat, lng], 16);
+            this.marker.setLatLng([lat, lng]);
+            this.selectedLocation = this.marker.getLatLng();
+            this.fillAddressFromLocation(lat, lng);
+            this.sendLocationToWebhook(lat, lng);
+          },
+          (error) => {
+            console.log('Geolocation error:', error);
+            this.fillAddressFromLocation(defaultLat, defaultLng);
+          },
+          {
+            timeout: 10000,
+            enableHighAccuracy: true,
+            maximumAge: 300000 // 5 minutos
+          }
+        );
+      } else {
+        console.log('Geolocation not supported');
+        this.fillAddressFromLocation(defaultLat, defaultLng);
+      }
+    });
+    
+    // Evento de arrastar o marcador
+    this.marker.on('dragstart', () => {
+      console.log('Marker drag started');
+    });
     
     this.marker.on('dragend', (e) => {
+      console.log('Marker drag ended');
       this.selectedLocation = e.target.getLatLng();
+      console.log('New location:', this.selectedLocation);
       this.fillAddressFromLocation(this.selectedLocation.lat, this.selectedLocation.lng);
       this.sendLocationToWebhook(this.selectedLocation.lat, this.selectedLocation.lng);
     });
+    
+    // Forçar redimensionamento do mapa
+    setTimeout(() => {
+      this.map.invalidateSize();
+    }, 300);
   }
   
   async fillAddressFromLocation(lat, lng) {
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1&lang=pt-br`
-      );
-      const data = await response.json();
-      const addr = data.address;
-      
-      if (addr.road) document.getElementById('street').value = addr.road;
-      if (addr.suburb) document.getElementById('neighborhood').value = addr.suburb;
-      if (addr.house_number) document.getElementById('houseNumber').value = addr.house_number;
-      document.getElementById('city').value = addr.city || addr.town || '';
-    } catch (error) {
-      console.error('Error fetching address:', error);
+    console.log('Filling address for:', lat, lng);
+    
+    // Cancelar requisição anterior se existir
+    if (this.addressFetchTimeout) {
+      clearTimeout(this.addressFetchTimeout);
     }
+    
+    // Debounce para evitar muitas requisições
+    this.addressFetchTimeout = setTimeout(async () => {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 segundos timeout
+        
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1&lang=pt-br&accept-language=pt-br,pt,en`,
+          {
+            signal: controller.signal,
+            headers: {
+              'User-Agent': 'KTech Store/1.0'
+            }
+          }
+        );
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Address data received:', data);
+        
+        if (data && data.address) {
+          const addr = data.address;
+          
+          // Limpar campos antes de preencher
+          const streetField = document.getElementById('street');
+          const neighborhoodField = document.getElementById('neighborhood');
+          const houseNumberField = document.getElementById('houseNumber');
+          const cityField = document.getElementById('city');
+          
+          if (streetField) streetField.value = '';
+          if (neighborhoodField) neighborhoodField.value = '';
+          if (houseNumberField) houseNumberField.value = '';
+          if (cityField) cityField.value = '';
+          
+          // Preencher com novos dados
+          if (addr.road && streetField) {
+            streetField.value = addr.road;
+            console.log('Street filled:', addr.road);
+          }
+          
+          if (addr.house_number && houseNumberField) {
+            houseNumberField.value = addr.house_number;
+            console.log('House number filled:', addr.house_number);
+          }
+          
+          // Tentar diferentes campos para o bairro
+          const neighborhood = addr.suburb || addr.neighbourhood || addr.residential || addr.quarter || '';
+          if (neighborhood && neighborhoodField) {
+            neighborhoodField.value = neighborhood;
+            console.log('Neighborhood filled:', neighborhood);
+          }
+          
+          // Cidade
+          const city = addr.city || addr.town || addr.municipality || addr.village || '';
+          if (city && cityField) {
+            cityField.value = city;
+            console.log('City filled:', city);
+          }
+          
+        } else {
+          console.warn('No address data in response');
+        }
+        
+      } catch (error) {
+        console.error('Error fetching address:', error);
+        
+        // Em caso de erro, tentar um serviço alternativo
+        try {
+          const fallbackResponse = await fetch(
+            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=pt`
+          );
+          const fallbackData = await fallbackResponse.json();
+          
+          if (fallbackData) {
+            const streetField = document.getElementById('street');
+            const neighborhoodField = document.getElementById('neighborhood');
+            const cityField = document.getElementById('city');
+            
+            if (fallbackData.locality && neighborhoodField) {
+              neighborhoodField.value = fallbackData.locality;
+            }
+            
+            if (fallbackData.city && cityField) {
+              cityField.value = fallbackData.city;
+            }
+            
+            console.log('Fallback address filled');
+          }
+        } catch (fallbackError) {
+          console.error('Fallback geocoding also failed:', fallbackError);
+        }
+      }
+    }, 500); // Aguarda 500ms antes de fazer a requisição
   }
   
   async sendLocationToWebhook(lat, lng) {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
       await fetch('https://webhookn8n.ktecheletronicos.com.br/webhook/location', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ latitude: lat, longitude: lng })
+        body: JSON.stringify({ latitude: lat, longitude: lng }),
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
     } catch (error) {
       console.error('Error sending location:', error);
     }
@@ -756,7 +893,6 @@ handleFormSubmit(e) {
     }
 
     message += `💳 *Pagamento:* ${paymentMethod}\n`;
-
 
     message += '\n\n⚠️ *Aguardando orçamento e confirmação dos valores finais.*';
 
