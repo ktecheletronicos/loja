@@ -727,17 +727,26 @@ class KTechStore {
           console.log('House number filled:', addr.house_number);
         }
 
-        // Bairro (tenta várias opções)
-        const neighborhood =
-          addr.suburb ||
-          addr.neighbourhood ||
-          addr.residential ||
-          addr.quarter ||
-          '';
-        if (neighborhood && neighborhoodField) {
-          neighborhoodField.value = neighborhood;
-          console.log('Neighborhood filled:', neighborhood);
-        }
+// Bairro / neighbourhood
+let neighbourhoodText = '';
+
+if (addr.neighbourhood) {
+  neighbourhoodText = addr.neighbourhood;
+  if (addr.suburb) {
+    neighbourhoodText += ' - Bairro: ' + addr.suburb;
+  }
+} else if (addr.suburb) {
+  neighbourhoodText = addr.suburb;
+} else if (addr.quarter) {
+  neighbourhoodText = addr.quarter;
+}
+
+if (neighbourhoodText && neighborhoodField) {
+  neighborhoodField.value = neighbourhoodText;
+  console.log('Neighborhood filled:', neighbourhoodText);
+}	
+
+		
 // Função auxiliar para transformar estado em sigla
 function getStateAbbreviation(state) {
   const map = {
@@ -902,7 +911,7 @@ handleFormSubmit(e) {
         message += `${empresaOuCondominio} - `;
       }
 
-      message += `${street}, ${houseNumber} - ${neighborhood} - ${city}\n`;
+      message += `${street}, ${houseNumber} - ${neighborhood}, ${city}\n`;
 
       if (this.selectedLocation) {
         message += `🗺️ *Localização:* https://maps.google.com/maps?q=${this.selectedLocation.lat},${this.selectedLocation.lng}\n`;
