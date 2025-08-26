@@ -418,15 +418,173 @@ class KTechStore {
     });
   }
   
-  handleSearch(term) {
-    const filteredProducts = term 
-      ? this.products.filter(p => 
-          p.PRODUTO.toLowerCase().includes(term.toLowerCase())
-        )
-      : this.products;
-    
-    this.renderProducts(filteredProducts);
+handleSearch(term) {
+  if (!term) {
+    this.renderProducts(this.products);
+    return;
   }
+  
+  const searchTerms = this.normalizeSearchTerm(term);
+  const filteredProducts = this.products.filter(product => 
+    this.matchProduct(product.PRODUTO, searchTerms)
+  );
+  
+  // Ordenar por relevância
+  const scoredProducts = filteredProducts.map(product => ({
+    ...product,
+    score: this.calculateRelevanceScore(product.PRODUTO, searchTerms, term)
+  })).sort((a, b) => b.score - a.score);
+  
+  this.renderProducts(scoredProducts);
+}
+
+normalizeSearchTerm(term) {
+  // Normalizar e dividir em palavras
+  const normalized = term.toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+    .replace(/[^\w\s]/g, ' ') // Remove pontuação
+    .replace(/\s+/g, ' ') // Remove espaços extras
+    .trim();
+  
+  return normalized.split(' ').filter(word => word.length > 0);
+}
+
+matchProduct(productName, searchTerms) {
+  const productNormalized = productName.toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  
+  // Dicionário de sinônimos e variações
+  const synonyms = {
+    'ssd': ['solid', 'state', 'drive'],
+    'hd': ['disco', 'rigido', 'hard', 'disk'],
+    'memoria': ['ram', 'ddr', 'dimm'],
+    'placa': ['board', 'mother', 'mae'],
+    'fonte': ['power', 'supply', 'alimentacao'],
+    'cooler': ['ventilador', 'fan', 'refrigeracao'],
+    'cabo': ['wire', 'fio'],
+    'mouse': ['rato'],
+    'teclado': ['keyboard'],
+    'monitor': ['display', 'tela'],
+    'webcam': ['camera', 'web'],
+    'headset': ['fone', 'headphone', 'auricular'],
+    'gabinete': ['case', 'torre', 'caixa'],
+    'processador': ['cpu', 'processor'],
+    'video': ['vga', 'graphics', 'grafica'],
+    'wireless': ['wifi', 'sem fio'],
+    'bluetooth': ['bt'],
+    'usb': ['universal', 'serial', 'bus'],
+    'smartphone': ['celular', 'phone', 'mobile'],
+    'tablet': ['pad'],
+    'notebook': ['laptop'],
+    'carregador': ['charger', 'fonte'],
+    'bateria': ['battery'],
+    'capa': ['case', 'protetor'],
+    'pelicula': ['screen', 'protector', 'vidro'],
+    'suporte': ['stand', 'holder'],
+    'adaptador': ['adapter', 'conversor'],
+    'hub': ['concentrador'],
+    'switch': ['comutador'],
+    'roteador': ['router'],
+    'modem': ['modem'],
+    'antena': ['antenna'],
+    'extensao': ['extension', 'cabo'],
+    'microfone': ['mic', 'microphone'],
+    'alto-falante': ['speaker', 'caixa', 'som'],
+    'impressora': ['printer'],
+    'scanner': ['digitalizador'],
+    'pendrive': ['flash', 'drive', 'usb'],
+    'cartao': ['card', 'sd', 'micro'],
+    'leitor': ['reader', 'card'],
+    'dvd': ['disc', 'disco'],
+    'bluray': ['blu-ray', 'bd'],
+    'tv': ['televisao', 'smart'],
+    'controle': ['control', 'remote', 'joystick', 'gamepad'],
+    'jogo': ['game', 'gaming'],
+    'led': ['light', 'lamp', 'fita'],
+    'rgb': ['colorido', 'color'],
+    'gamer': ['gaming', 'game'],
+    '128gb': ['128', 'gb', '128 gb'],
+    '256gb': ['256', 'gb', '256 gb'],
+    '512gb': ['512', 'gb', '512 gb'],
+    '1tb': ['1000gb', '1 tb', '1000 gb'],
+    '2tb': ['2000gb', '2 tb', '2000 gb'],
+    '4gb': ['4', 'gb', '4 gb'],
+    '8gb': ['8', 'gb', '8 gb'],
+    '16gb': ['16', 'gb', '16 gb'],
+    '32gb': ['32', 'gb', '32 gb'],
+    '2.5': ['2,5', 'duas cinco', 'dois cinco'],
+    '3.5': ['3,5', 'tres cinco'],
+    'tipo-c': ['type-c', 'usb-c', 'typec', 'usbv']
+  };
+  
+  // Verificar se todas as palavras da busca têm correspondência
+  return searchTerms.every(searchTerm => {
+    // Correspondência direta
+    if (productNormalized.includes(searchTerm)) {
+      return true;
+    }
+    
+    // Verificar sinônimos
+    const relatedWords = synonyms[searchTerm] || [];
+    if (relatedWords.some(synonym => productNormalized.includes(synonym))) {
+      return true;
+    }
+    
+    // Verificar se o termo de busca é sinônimo de algo no produto
+    for (const [key, values] of Object.entries(synonyms)) {
+      if (values.includes(searchTerm) && productNormalized.includes(key)) {
+        return true;
+      }
+    }
+    
+    // Busca parcial (para números e medidas)
+    if (searchTerm.length >= 3) {
+      const words = productNormalized.split(/\s+/);
+      return words.some(word => 
+        word.includes(searchTerm) || 
+        searchTerm.includes(word)
+      );
+    }
+    
+    return false;
+  });
+}
+
+calculateRelevanceScore(productName, searchTerms, originalTerm) {
+  let score = 0;
+  const productLower = productName.toLowerCase();
+  const originalLower = originalTerm.toLowerCase();
+  
+  // Correspondência exata da busca completa
+  if (productLower.includes(originalLower)) {
+    score += 100;
+  }
+  
+  // Correspondência no início do nome
+  if (productLower.startsWith(originalLower)) {
+    score += 50;
+  }
+  
+  // Pontos por cada termo encontrado
+  searchTerms.forEach(term => {
+    if (productLower.includes(term)) {
+      score += 10;
+      
+      // Bônus se estiver no início
+      if (productLower.startsWith(term)) {
+        score += 5;
+      }
+    }
+  });
+  
+  // Bônus para produtos com menos palavras (mais específicos)
+  const wordCount = productName.split(' ').length;
+  score += Math.max(0, 20 - wordCount);
+  
+  return score;
+}
   
   toggleCartItem(productName) {
     const existingIndex = this.cart.findIndex(item => item.PRODUTO === productName);
