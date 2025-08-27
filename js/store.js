@@ -1,8 +1,9 @@
-// store.js - Módulo Principal (Versão Atualizada com Webhook)
+// store.js - Módulo Principal (Versão Atualizada com Webhook e Search via URL)
 class KTechStore {
   constructor() {
     this.products = [];
     this.customerNameFromUrl = null;
+    this.searchFromUrl = null;
     
     // Inicializar módulos
     this.searchModule = new SearchModule();
@@ -46,9 +47,14 @@ class KTechStore {
   getUrlParameters() {
     const urlParams = new URLSearchParams(window.location.search);
     this.customerNameFromUrl = urlParams.get('name');
+    this.searchFromUrl = urlParams.get('search');
     
     if (this.customerNameFromUrl) {
       console.log('Nome recebido via URL:', this.customerNameFromUrl);
+    }
+    
+    if (this.searchFromUrl) {
+      console.log('Busca recebida via URL:', this.searchFromUrl);
     }
   }
   
@@ -65,6 +71,22 @@ class KTechStore {
           nameError.style.display = 'none';
         }
       }
+    }
+  }
+  
+  setupSearchFieldFromUrl() {
+    if (this.searchFromUrl && this.searchInput) {
+      // Preencher campo de busca automaticamente
+      this.searchInput.value = this.searchFromUrl;
+      
+      // Aplicar a busca nos produtos já carregados
+      if (this.products.length > 0) {
+        this.searchModule.handleSearch(this.searchFromUrl, this.products, (filteredProducts) => {
+          this.renderProducts(filteredProducts);
+        });
+      }
+      
+      console.log('Campo de busca preenchido com:', this.searchFromUrl);
     }
   }
   
@@ -171,7 +193,13 @@ class KTechStore {
       const data = await response.json();
       
       this.products = Array.isArray(data) ? data.filter(p => p.PRODUTO && p.FOTO) : [];
-      this.renderProducts(this.products);
+      
+      // Aplicar busca da URL se existir, senão renderizar todos os produtos
+      if (this.searchFromUrl) {
+        this.setupSearchFieldFromUrl();
+      } else {
+        this.renderProducts(this.products);
+      }
     } catch (error) {
       console.error('Erro ao carregar produtos:', error);
       this.showError('Erro ao carregar produtos. Tente novamente.');
@@ -196,10 +224,15 @@ class KTechStore {
   
   renderProducts(products) {
     if (products.length === 0) {
+      const searchTerm = this.searchInput.value || this.searchFromUrl;
+      const message = searchTerm 
+        ? `Nenhum produto encontrado para "${searchTerm}"`
+        : 'Nenhum produto encontrado';
+      
       this.productsGrid.innerHTML = `
         <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--gray);">
           <div style="font-size: 48px; margin-bottom: 16px;">🔍</div>
-          <div style="font-size: 18px;">Nenhum produto encontrado</div>
+          <div style="font-size: 18px;">${message}</div>
         </div>
       `;
       return;
@@ -280,28 +313,40 @@ class KTechStore {
     }
     
     this.updateCart();
-    this.renderProducts(this.searchInput.value ? 
-      this.products.filter(p => p.PRODUTO.toLowerCase().includes(this.searchInput.value.toLowerCase())) : 
-      this.products
-    );
+    
+    // Renderizar produtos baseado na busca atual (seja do input ou da URL)
+    const currentSearch = this.searchInput.value || this.searchFromUrl || '';
+    const filteredProducts = currentSearch ? 
+      this.products.filter(p => p.PRODUTO.toLowerCase().includes(currentSearch.toLowerCase())) : 
+      this.products;
+    
+    this.renderProducts(filteredProducts);
   }
   
   changeQuantity(productName, delta) {
     this.cartModule.changeQuantity(productName, delta);
     this.updateCart();
-    this.renderProducts(this.searchInput.value ? 
-      this.products.filter(p => p.PRODUTO.toLowerCase().includes(this.searchInput.value.toLowerCase())) : 
-      this.products
-    );
+    
+    // Renderizar produtos baseado na busca atual (seja do input ou da URL)
+    const currentSearch = this.searchInput.value || this.searchFromUrl || '';
+    const filteredProducts = currentSearch ? 
+      this.products.filter(p => p.PRODUTO.toLowerCase().includes(currentSearch.toLowerCase())) : 
+      this.products;
+    
+    this.renderProducts(filteredProducts);
   }
   
   removeFromCart(productName) {
     this.cartModule.removeFromCart(productName);
     this.updateCart();
-    this.renderProducts(this.searchInput.value ? 
-      this.products.filter(p => p.PRODUTO.toLowerCase().includes(this.searchInput.value.toLowerCase())) : 
-      this.products
-    );
+    
+    // Renderizar produtos baseado na busca atual (seja do input ou da URL)
+    const currentSearch = this.searchInput.value || this.searchFromUrl || '';
+    const filteredProducts = currentSearch ? 
+      this.products.filter(p => p.PRODUTO.toLowerCase().includes(currentSearch.toLowerCase())) : 
+      this.products;
+    
+    this.renderProducts(filteredProducts);
     this.showNotification(`${productName} removido do carrinho`, 'danger');
   }
   
@@ -557,7 +602,11 @@ class KTechStore {
         totalValue: cartTotal,
         hasValidTotal: cartTotal > 0
       },
-      observations: observations || null
+      observations: observations || null,
+      search: {
+        fromUrl: this.searchFromUrl || null,
+        appliedSearch: this.searchInput.value || this.searchFromUrl || null
+      }
     };
     
     // Adicionar dados de entrega se for entrega
