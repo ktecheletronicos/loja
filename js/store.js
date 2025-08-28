@@ -183,16 +183,32 @@ class KTechStore {
         this.handleDeliveryOption(e.target.value);
         // Atualizar total quando opção de entrega mudar
         this.updateCartTotal();
+        // Validar formulário quando opção mudar
+        this.validateForm();
       });
     });
     
     document.querySelectorAll('input[name="tipoEndereco"]').forEach(radio => {
-      radio.addEventListener('change', (e) => this.handleAddressType(e.target.value));
+      radio.addEventListener('change', (e) => {
+        this.handleAddressType(e.target.value);
+        // Validar formulário quando tipo de endereço mudar
+        this.validateForm();
+      });
     });
     
     // Form validation
     this.customerName.addEventListener('input', () => this.validateForm());
     this.paymentMethod.addEventListener('change', () => this.validateForm());
+    
+    // Validação em tempo real dos campos de endereço
+    const addressFields = ['street', 'houseNumber', 'neighborhood', 'empresaOuCondominio'];
+    addressFields.forEach(fieldId => {
+      const field = document.getElementById(fieldId);
+      if (field) {
+        field.addEventListener('input', () => this.validateForm());
+        field.addEventListener('blur', () => this.validateForm());
+      }
+    });
     
     // Form submit
     this.customerForm.addEventListener('submit', (e) => this.handleFormSubmit(e));
@@ -557,8 +573,9 @@ class KTechStore {
   
   validateForm() {
     let nameValid = true;
+    let addressValid = true;
     
-    // Se nome veio por URL, usar ele
+    // Validar nome
     if (this.customerNameFromUrl) {
       nameValid = /^[A-Za-zÀ-ÿ ]{12,}$/.test(this.customerNameFromUrl);
     } else {
@@ -576,14 +593,114 @@ class KTechStore {
       }
     }
     
-    // Check if form is complete
+    // Validar campos de endereço se entrega for selecionada
+    const deliveryOption = document.querySelector('input[name="deliveryOption"]:checked');
+    if (deliveryOption && deliveryOption.value === 'ENTREGA') {
+      const tipoEndereco = document.querySelector('input[name="tipoEndereco"]:checked');
+      const street = document.getElementById('street').value.trim();
+      const houseNumber = document.getElementById('houseNumber').value.trim();
+      const neighborhood = document.getElementById('neighborhood').value.trim();
+      
+      // Campos obrigatórios para entrega
+      let requiredFields = [
+        { element: document.getElementById('street'), valid: street.length > 0 },
+        { element: document.getElementById('houseNumber'), valid: houseNumber.length > 0 },
+        { element: document.getElementById('neighborhood'), valid: neighborhood.length > 0 }
+      ];
+      
+      // Se tipo de endereço for empresa/condomínio, validar campo adicional
+      if (tipoEndereco && (tipoEndereco.value === 'EMPRESA' || tipoEndereco.value === 'CONDOMINIO')) {
+        const empresaOuCondominio = document.getElementById('empresaOuCondominio').value.trim();
+        requiredFields.push({ 
+          element: document.getElementById('empresaOuCondominio'), 
+          valid: empresaOuCondominio.length > 0 
+        });
+      }
+      
+      // Verificar se tipo de endereço foi selecionado
+      const tipoEnderecoValid = !!tipoEndereco;
+      
+      // Aplicar estilos de erro nos campos
+      requiredFields.forEach(field => {
+        if (field.element) {
+          if (!field.valid) {
+            field.element.classList.add('input-error');
+          } else {
+            field.element.classList.remove('input-error');
+          }
+        }
+      });
+      
+      // Validar se todos os campos obrigatórios estão preenchidos
+      addressValid = tipoEnderecoValid && requiredFields.every(field => field.valid);
+      
+      // Mostrar mensagem de erro se necessário
+      this.showAddressValidationMessage(addressValid, tipoEnderecoValid);
+    } else {
+      // Limpar erros de endereço se retirada for selecionada
+      this.clearAddressErrors();
+    }
+    
+    // Verificar se formulário está completo
     const isFormValid = nameValid && 
                        this.paymentMethod.value !== '' && 
-                       !this.cartModule.isEmpty();
+                       !this.cartModule.isEmpty() &&
+                       addressValid;
     
     this.whatsappBtn.disabled = !isFormValid;
     
     return isFormValid;
+  }
+  
+  // Função auxiliar para mostrar mensagens de validação de endereço
+  showAddressValidationMessage(addressValid, tipoEnderecoValid) {
+    // Remover mensagem anterior se existir
+    const existingError = document.querySelector('.address-validation-error');
+    if (existingError) {
+      existingError.remove();
+    }
+    
+    if (!addressValid) {
+      const errorMessage = document.createElement('div');
+      errorMessage.className = 'address-validation-error form-error active';
+      errorMessage.style.cssText = `
+        margin-top: 8px;
+        padding: 8px 12px;
+        background: #f8d7da;
+        border: 1px solid #dc3545;
+        border-radius: 4px;
+        color: #721c24;
+        font-size: 14px;
+      `;
+      
+      if (!tipoEnderecoValid) {
+        errorMessage.textContent = 'Selecione o tipo de endereço para entrega';
+      } else {
+        errorMessage.textContent = 'Preencha todos os campos obrigatórios do endereço';
+      }
+      
+      // Inserir mensagem após os campos de endereço
+      const deliveryForm = document.getElementById('deliveryForm');
+      if (deliveryForm) {
+        deliveryForm.appendChild(errorMessage);
+      }
+    }
+  }
+  
+  // Função auxiliar para limpar erros de endereço
+  clearAddressErrors() {
+    const addressFields = ['street', 'houseNumber', 'neighborhood', 'empresaOuCondominio'];
+    addressFields.forEach(fieldId => {
+      const field = document.getElementById(fieldId);
+      if (field) {
+        field.classList.remove('input-error');
+      }
+    });
+    
+    const existingError = document.querySelector('.address-validation-error');
+    if (existingError) {
+      existingError.remove();
+    }
   }
   
   // Nova função para enviar dados para o webhook
@@ -748,7 +865,7 @@ class KTechStore {
         
         if (deliveryFee > 0) {
           const currentDistance = window.getCurrentDistance ? window.getCurrentDistance() : 0;
-          message += `\n🚚 *TAXA DE ENTREGA:* ${this.formatPrice(deliveryFee)}`;
+          message += `\n🚚 *TAXA DE ENTREGA (${currentDistance.toFixed(1)}km):* ${this.formatPrice(deliveryFee)}`;
           message += `\n💸 *TOTAL FINAL:* ${this.formatPrice(finalTotal)}`;
         }
         message += '\n';
