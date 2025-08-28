@@ -17,6 +17,7 @@ class KTechStore {
     this.updateCart(); // Atualizar carrinho após carregar do cache
     this.bindEvents();
     this.loadProducts();
+    this.setupDeliveryFeeListener();
   }
   
   formatPrice(price) {
@@ -24,7 +25,7 @@ class KTechStore {
     return `R$ ${parseFloat(price).toFixed(2).replace('.', ',')}`;
   }
   
-  // Função para calcular total do carrinho
+  // Função para calcular total do carrinho (sem taxa de entrega)
   calculateCartTotal() {
     const cart = this.cartModule.getCart();
     let total = 0;
@@ -38,10 +39,34 @@ class KTechStore {
     return total;
   }
   
+  // Função para calcular total final (carrinho + taxa de entrega)
+  calculateFinalTotal() {
+    const cartTotal = this.calculateCartTotal();
+    const deliveryFee = this.getCurrentDeliveryFee();
+    return cartTotal + deliveryFee;
+  }
+  
+  // Função para obter a taxa de entrega atual
+  getCurrentDeliveryFee() {
+    const selectedDeliveryOption = document.querySelector('input[name="deliveryOption"]:checked');
+    if (selectedDeliveryOption && selectedDeliveryOption.value === 'ENTREGA') {
+      return window.getCurrentDeliveryFee ? window.getCurrentDeliveryFee() : 0;
+    }
+    return 0;
+  }
+  
   // Função para calcular subtotal de um item
   calculateItemSubtotal(item) {
     if (!item.VALOR_VENDA || isNaN(item.VALOR_VENDA)) return 0;
     return parseFloat(item.VALOR_VENDA) * item.quantity;
+  }
+  
+  // Setup listener para atualizações da taxa de entrega
+  setupDeliveryFeeListener() {
+    document.addEventListener('locationDistanceCalculated', () => {
+      // Atualizar total quando distância for recalculada
+      this.updateCartTotal();
+    });
   }
   
   getUrlParameters() {
@@ -154,7 +179,11 @@ class KTechStore {
     
     // Delivery options
     document.querySelectorAll('input[name="deliveryOption"]').forEach(radio => {
-      radio.addEventListener('change', (e) => this.handleDeliveryOption(e.target.value));
+      radio.addEventListener('change', (e) => {
+        this.handleDeliveryOption(e.target.value);
+        // Atualizar total quando opção de entrega mudar
+        this.updateCartTotal();
+      });
     });
     
     document.querySelectorAll('input[name="tipoEndereco"]').forEach(radio => {
@@ -438,7 +467,9 @@ class KTechStore {
   }
   
   updateCartTotal() {
-    const total = this.calculateCartTotal();
+    const cartTotal = this.calculateCartTotal();
+    const deliveryFee = this.getCurrentDeliveryFee();
+    const finalTotal = cartTotal + deliveryFee;
     const totalItems = this.cartModule.getTotalItems();
     
     if (!this.cartTotal) {
@@ -449,14 +480,30 @@ class KTechStore {
       this.cartItems.parentNode.insertBefore(this.cartTotal, this.cartItems.nextSibling);
     }
     
-    if (total > 0) {
-      this.cartTotal.innerHTML = `
+    if (cartTotal > 0) {
+      let totalHTML = `
         <div class="cart-total-content">
           <div class="cart-total-items">${totalItems} ${totalItems === 1 ? 'item' : 'itens'}</div>
-          <div class="cart-total-price">Total: ${this.formatPrice(total)}</div>
+          <div class="cart-subtotal">Subtotal: ${this.formatPrice(cartTotal)}</div>
+      `;
+      
+      // Adicionar taxa de entrega se houver
+      if (deliveryFee > 0) {
+        const currentDistance = window.getCurrentDistance ? window.getCurrentDistance() : 0;
+        totalHTML += `
+          <div class="cart-delivery-fee">Taxa de entrega (${currentDistance.toFixed(1)}km): ${this.formatPrice(deliveryFee)}</div>
+          <div class="cart-total-price">Total Final: ${this.formatPrice(finalTotal)}</div>
+        `;
+      } else {
+        totalHTML += `<div class="cart-total-price">Total: ${this.formatPrice(cartTotal)}</div>`;
+      }
+      
+      totalHTML += `
           <div class="cart-total-note">*Valores sujeitos a alteração</div>
         </div>
       `;
+      
+      this.cartTotal.innerHTML = totalHTML;
       this.cartTotal.style.display = 'block';
     } else {
       this.cartTotal.style.display = 'none';
@@ -576,6 +623,8 @@ class KTechStore {
     const cart = this.cartModule.getCart();
     const totalItems = this.cartModule.getTotalItems();
     const cartTotal = this.calculateCartTotal();
+    const deliveryFee = this.getCurrentDeliveryFee();
+    const finalTotal = cartTotal + deliveryFee;
     
     // Estruturar dados básicos do pedido
     const orderData = {
@@ -588,7 +637,9 @@ class KTechStore {
         method: paymentMethod
       },
       delivery: {
-        type: deliveryOption
+        type: deliveryOption,
+        fee: deliveryFee,
+        distance: deliveryOption === 'ENTREGA' ? (window.getCurrentDistance ? window.getCurrentDistance() : 0) : null
       },
       cart: {
         items: cart.map(item => ({
@@ -599,7 +650,9 @@ class KTechStore {
           hasPrice: !!(item.VALOR_VENDA && !isNaN(item.VALOR_VENDA))
         })),
         totalItems: totalItems,
-        totalValue: cartTotal,
+        subtotal: cartTotal,
+        deliveryFee: deliveryFee,
+        totalValue: finalTotal,
         hasValidTotal: cartTotal > 0
       },
       observations: observations || null,
@@ -672,6 +725,8 @@ class KTechStore {
       let message = '🛒 *NOVO ORÇAMENTO - CATÁLOGO KTECH*\n\n';
       const totalItems = this.cartModule.getTotalItems();
       const cartTotal = this.calculateCartTotal();
+      const deliveryFee = this.getCurrentDeliveryFee();
+      const finalTotal = cartTotal + deliveryFee;
       
       message += `\n📦 *PRODUTOS* (${totalItems} itens):\n`;
 
@@ -687,9 +742,16 @@ class KTechStore {
         message += '\n';
       });
 
-      // Adicionar total se houver produtos com preço
+      // Adicionar subtotal e taxa de entrega se houver produtos com preço
       if (cartTotal > 0) {
-        message += `\n💰 *TOTAL ESTIMADO:* ${this.formatPrice(cartTotal)}\n`;
+        message += `\n💰 *SUBTOTAL:* ${this.formatPrice(cartTotal)}`;
+        
+        if (deliveryFee > 0) {
+          const currentDistance = window.getCurrentDistance ? window.getCurrentDistance() : 0;
+          message += `\n🚚 *TAXA DE ENTREGA:* ${this.formatPrice(deliveryFee)}`;
+          message += `\n💸 *TOTAL FINAL:* ${this.formatPrice(finalTotal)}`;
+        }
+        message += '\n';
       }
 
       if (observations) {
@@ -718,7 +780,9 @@ class KTechStore {
 
         const selectedLocation = this.locationModule.getSelectedLocation();
         if (selectedLocation) {
+          const currentDistance = window.getCurrentDistance ? window.getCurrentDistance() : 0;
           message += `🗺️ *Localização:* https://maps.google.com/maps?q=${selectedLocation.lat},${selectedLocation.lng}\n`;
+          message += `📏 *Distância:* ${currentDistance.toFixed(1)} km\n`;
         }
       }
 

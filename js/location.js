@@ -5,6 +5,13 @@ class LocationModule {
     this.marker = null;
     this.selectedLocation = null;
     this.addressFetchTimeout = null;
+    this.routeControl = null;
+    
+    // Local de referência para cálculo de distância
+    this.referenceLocation = {
+      lat: -5.110777,
+      lng: -42.742837
+    };
   }
   
   initializeMap() {
@@ -32,6 +39,15 @@ class LocationModule {
       riseOnHover: true 
     }).addTo(this.map);
     
+    // Adicionar marcador do local de referência
+    const referenceMarker = L.marker([this.referenceLocation.lat, this.referenceLocation.lng], {
+      draggable: false,
+      riseOnHover: true
+    }).addTo(this.map);
+    
+    // Ícone diferente para o marcador de referência
+    referenceMarker.bindPopup('Local de Referência').openPopup();
+    
     this.selectedLocation = this.marker.getLatLng();
     
     // Aguardar o mapa carregar completamente
@@ -51,10 +67,12 @@ class LocationModule {
             this.selectedLocation = this.marker.getLatLng();
             this.fillAddressFromLocation(lat, lng);
             this.sendLocationToWebhook(lat, lng);
+            this.calculateRouteDistance();
           },
           (error) => {
             console.log('Geolocation error:', error);
             this.fillAddressFromLocation(defaultLat, defaultLng);
+            this.calculateRouteDistance();
           },
           {
             timeout: 10000,
@@ -65,6 +83,7 @@ class LocationModule {
       } else {
         console.log('Geolocation not supported');
         this.fillAddressFromLocation(defaultLat, defaultLng);
+        this.calculateRouteDistance();
       }
     });
     
@@ -79,12 +98,133 @@ class LocationModule {
       console.log('New location:', this.selectedLocation);
       this.fillAddressFromLocation(this.selectedLocation.lat, this.selectedLocation.lng);
       this.sendLocationToWebhook(this.selectedLocation.lat, this.selectedLocation.lng);
+      this.calculateRouteDistance();
     });
     
     // Forçar redimensionamento do mapa
     setTimeout(() => {
       this.map.invalidateSize();
     }, 300);
+  }
+  
+  /**
+   * Calcula a distância de rota entre a localização selecionada e o local de referência
+   * @returns {Promise<number>} Distância em quilômetros
+   */
+  async calculateRouteDistance() {
+    if (!this.selectedLocation) return 0;
+    
+    try {
+      const startLat = this.selectedLocation.lat;
+      const startLng = this.selectedLocation.lng;
+      const endLat = this.referenceLocation.lat;
+      const endLng = this.referenceLocation.lng;
+      
+      console.log('Calculating route distance from:', startLat, startLng, 'to:', endLat, endLng);
+      
+      // Usando OSRM (Open Source Routing Machine) para calcular a rota
+      const response = await fetch(
+        `https://router.project-osrm.org/route/v1/driving/${startLng},${startLat};${endLng},${endLat}?overview=false&alternatives=false&steps=false`
+      );
+      
+      if (!response.ok) {
+        throw new Error(`OSRM API error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.routes && data.routes.length > 0) {
+        const distanceInMeters = data.routes[0].distance;
+        const distanceInKm = (distanceInMeters / 1000).toFixed(2);
+        
+        console.log(`Route distance: ${distanceInKm} km`);
+        
+        // Disparar evento customizado com a distância calculada
+        this.dispatchDistanceEvent(parseFloat(distanceInKm));
+        
+        return parseFloat(distanceInKm);
+      } else {
+        throw new Error('No route found');
+      }
+    } catch (error) {
+      console.error('Error calculating route distance:', error);
+      
+      // Fallback: calcular distância em linha reta
+      const straightDistance = this.calculateStraightDistance();
+      console.log(`Fallback to straight distance: ${straightDistance} km`);
+      
+      this.dispatchDistanceEvent(straightDistance);
+      return straightDistance;
+    }
+  }
+  
+  /**
+   * Calcula a distância em linha reta usando a fórmula de Haversine
+   * @returns {number} Distância em quilômetros
+   */
+  calculateStraightDistance() {
+    if (!this.selectedLocation) return 0;
+    
+    const R = 6371; // Raio da Terra em km
+    const lat1 = this.selectedLocation.lat * Math.PI / 180;
+    const lat2 = this.referenceLocation.lat * Math.PI / 180;
+    const deltaLat = (this.referenceLocation.lat - this.selectedLocation.lat) * Math.PI / 180;
+    const deltaLng = (this.referenceLocation.lng - this.selectedLocation.lng) * Math.PI / 180;
+    
+    const a = Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+              Math.cos(lat1) * Math.cos(lat2) *
+              Math.sin(deltaLng / 2) * Math.sin(deltaLng / 2);
+    
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distance = R * c;
+    
+    return parseFloat(distance.toFixed(2));
+  }
+  
+  /**
+   * Dispara evento customizado com a distância calculada
+   * @param {number} distance Distância em quilômetros
+   */
+  dispatchDistanceEvent(distance) {
+    const event = new CustomEvent('locationDistanceCalculated', {
+      detail: {
+        distance: distance,
+        from: {
+          lat: this.selectedLocation.lat,
+          lng: this.selectedLocation.lng
+        },
+        to: this.referenceLocation,
+        unit: 'km'
+      }
+    });
+    
+    document.dispatchEvent(event);
+    
+    // Também exibir no console para debug
+    console.log(`Distance calculated: ${distance} km`);
+  }
+  
+  /**
+   * Obtém a última distância calculada
+   * @returns {Promise<number>} Distância em quilômetros
+   */
+  async getDistanceToReference() {
+    return await this.calculateRouteDistance();
+  }
+  
+  /**
+   * Atualiza o local de referência para cálculo de distância
+   * @param {number} lat Latitude
+   * @param {number} lng Longitude
+   */
+  setReferenceLocation(lat, lng) {
+    this.referenceLocation = { lat, lng };
+    console.log('Reference location updated to:', lat, lng);
+    
+    // Recalcular distância se já há uma localização selecionada
+    if (this.selectedLocation) {
+      this.calculateRouteDistance();
+    }
   }
   
   async fillAddressFromLocation(lat, lng) {
@@ -245,3 +385,20 @@ class LocationModule {
 
 // Export para uso no módulo principal
 window.LocationModule = LocationModule;
+
+// Exemplo de como usar o evento de distância calculada:
+/*
+document.addEventListener('locationDistanceCalculated', (event) => {
+  const { distance, from, to, unit } = event.detail;
+  console.log(`Distância calculada: ${distance} ${unit}`);
+  console.log(`De: ${from.lat}, ${from.lng}`);
+  console.log(`Para: ${to.lat}, ${to.lng}`);
+  
+  // Aqui você pode atualizar a interface do usuário com a distância
+  // Por exemplo:
+  const distanceDisplay = document.getElementById('distance-display');
+  if (distanceDisplay) {
+    distanceDisplay.textContent = `${distance} km`;
+  }
+});
+*/
