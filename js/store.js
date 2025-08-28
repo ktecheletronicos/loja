@@ -865,7 +865,7 @@ class KTechStore {
         
         if (deliveryFee > 0) {
           const currentDistance = window.getCurrentDistance ? window.getCurrentDistance() : 0;
-          message += `\n🚚 *TAXA DE ENTREGA (${currentDistance.toFixed(1)}km):* ${this.formatPrice(deliveryFee)}`;
+          message += `\n🚚 *TAXA DE ENTREGA:* ${this.formatPrice(deliveryFee)}`;
           message += `\n💸 *TOTAL FINAL:* ${this.formatPrice(finalTotal)}`;
         }
         message += '\n';
