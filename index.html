@@ -14,6 +14,49 @@
 <link rel="icon" type="image/png" href="https://ktecheletronicos.github.io/ktechfiles/logo_k.png">
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 <link rel="stylesheet" href="estilo.css">
+<style>
+  .delivery-distance {
+    background: #f0f8ff;
+    border: 2px solid #4a90e2;
+    border-radius: 8px;
+    padding: 12px;
+    margin: 12px 0;
+    text-align: center;
+    font-weight: bold;
+  }
+  
+  .delivery-distance .distance-info {
+    font-size: 16px;
+    color: #2c5aa0;
+    margin-bottom: 8px;
+  }
+  
+  .delivery-distance .delivery-fee {
+    font-size: 18px;
+    color: #e74c3c;
+  }
+  
+  .delivery-distance.calculating {
+    background: #fff3cd;
+    border-color: #ffc107;
+    color: #856404;
+  }
+  
+  .delivery-distance .loading-text {
+    font-size: 14px;
+    font-style: italic;
+  }
+  
+  .delivery-unavailable {
+    background: #f8d7da;
+    border-color: #dc3545;
+    color: #721c24;
+  }
+  
+  .hidden {
+    display: none !important;
+  }
+</style>
 </head>
 <body>
 <!-- HEADER -->
@@ -75,6 +118,11 @@
       <div class="map-instruction">
         <span class="map-instruction-icon">📍</span>
         <strong>IMPORTANTE:</strong> Arraste o pino azul no mapa até o local exato da sua entrega!
+      </div>
+      
+      <!-- CAMPO DE DISTÂNCIA E TAXA DE ENTREGA -->
+      <div id="deliveryDistanceInfo" class="delivery-distance calculating">
+        <div class="loading-text">📏 Calculando distância...</div>
       </div>
       
       <label>Tipo de endereço:</label>
@@ -144,6 +192,112 @@
 <script src="js/location.js"></script>
 <script src="js/cart.js"></script>
 <script src="js/store.js"></script>
-</body>
 
+<script>
+// Função para calcular o valor da entrega baseado na distância
+function calculateDeliveryFee(distanceKm) {
+  if (distanceKm <= 10) {
+    return 10.00;
+  } else {
+    // De 10.01 até 15km: R$ 10 + R$ 1 para cada km adicional
+    const additionalKm = Math.ceil(distanceKm - 10);
+    return 10.00 + additionalKm;
+  }
+}
+
+// Função para atualizar o display da distância e taxa
+function updateDeliveryDistanceDisplay(distance) {
+  const deliveryInfo = document.getElementById('deliveryDistanceInfo');
+  
+  if (!deliveryInfo) return;
+  
+  if (distance === null || distance === undefined) {
+    deliveryInfo.className = 'delivery-distance calculating';
+    deliveryInfo.innerHTML = '<div class="loading-text">📏 Calculando distância...</div>';
+    return;
+  }
+  
+  // Verificar se a distância está dentro do limite de entrega (exemplo: máximo 30km)
+  if (distance > 30) {
+    deliveryInfo.className = 'delivery-distance delivery-unavailable';
+    deliveryInfo.innerHTML = `
+      <div class="distance-info">📏 Distância: ${distance.toFixed(1)} km</div>
+      <div class="delivery-fee">❌ Entrega não disponível para esta distância</div>
+    `;
+    return;
+  }
+  
+  const deliveryFee = calculateDeliveryFee(distance);
+  
+  deliveryInfo.className = 'delivery-distance';
+  deliveryInfo.innerHTML = `
+    <div class="distance-info">📏 Distância: ${distance.toFixed(1)} km</div>
+    <div class="delivery-fee">🚚 Taxa de entrega: R$ ${deliveryFee.toFixed(2)}</div>
+  `;
+  
+  // Armazenar a taxa para uso posterior (carrinho, WhatsApp, etc.)
+  window.currentDeliveryFee = deliveryFee;
+  window.currentDistance = distance;
+}
+
+// Event listener para o evento de distância calculada
+document.addEventListener('locationDistanceCalculated', (event) => {
+  const { distance } = event.detail;
+  updateDeliveryDistanceDisplay(distance);
+});
+
+// Event listeners para mostrar/ocultar o campo de distância
+document.addEventListener('DOMContentLoaded', () => {
+  const deliveryOptions = document.querySelectorAll('input[name="deliveryOption"]');
+  const deliveryDistanceInfo = document.getElementById('deliveryDistanceInfo');
+  
+  deliveryOptions.forEach(radio => {
+    radio.addEventListener('change', (e) => {
+      if (e.target.value === 'ENTREGA') {
+        // Mostrar campo de distância quando entrega for selecionada
+        if (deliveryDistanceInfo) {
+          deliveryDistanceInfo.classList.remove('hidden');
+          // Se já temos uma distância calculada, exibir
+          if (window.currentDistance !== undefined) {
+            updateDeliveryDistanceDisplay(window.currentDistance);
+          }
+        }
+      } else {
+        // Ocultar campo de distância quando retirada for selecionada
+        if (deliveryDistanceInfo) {
+          deliveryDistanceInfo.classList.add('hidden');
+        }
+        // Limpar taxa de entrega
+        window.currentDeliveryFee = 0;
+        window.currentDistance = undefined;
+      }
+    });
+  });
+});
+
+// Função auxiliar para obter a taxa de entrega atual
+function getCurrentDeliveryFee() {
+  const selectedDeliveryOption = document.querySelector('input[name="deliveryOption"]:checked');
+  if (selectedDeliveryOption && selectedDeliveryOption.value === 'ENTREGA') {
+    return window.currentDeliveryFee || 0;
+  }
+  return 0;
+}
+
+// Função auxiliar para obter a distância atual
+function getCurrentDistance() {
+  const selectedDeliveryOption = document.querySelector('input[name="deliveryOption"]:checked');
+  if (selectedDeliveryOption && selectedDeliveryOption.value === 'ENTREGA') {
+    return window.currentDistance || 0;
+  }
+  return 0;
+}
+
+// Disponibilizar funções globalmente para uso em outros scripts
+window.calculateDeliveryFee = calculateDeliveryFee;
+window.getCurrentDeliveryFee = getCurrentDeliveryFee;
+window.getCurrentDistance = getCurrentDistance;
+window.updateDeliveryDistanceDisplay = updateDeliveryDistanceDisplay;
+</script>
+</body>
 </html>
