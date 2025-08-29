@@ -105,7 +105,7 @@
         </label>
         <label class="radio-option">
           <input type="radio" name="deliveryOption" value="ENTREGA">
-          🚚 Entrega em casa
+          🚚 Entrega (use minha localização)
         </label>
       </div>
     </div>
@@ -169,7 +169,7 @@
       <textarea class="form-textarea" id="observations" placeholder="Observações (opcional)" rows="3"></textarea>
       
       <button type="submit" class="whatsapp-button" id="whatsappBtn" disabled>
-        📱 Orçamento via WhatsApp
+        📱 Finalizar no WhatsApp
       </button>
     </form>
   </div>
@@ -221,7 +221,7 @@ function updateDeliveryDistanceDisplay(distance) {
   if (distance > 30) {
     deliveryInfo.className = 'delivery-distance delivery-unavailable';
     deliveryInfo.innerHTML = `
-      <div class="distance-info">📏 Distância: ${distance.toFixed(1)} km</div>
+	  <div class="distance-info">📏 Distância: ${distance.toFixed(1)} km</div>
       <div class="delivery-fee">❌ Entrega não disponível para esta distância</div>
     `;
     return;
@@ -231,7 +231,6 @@ function updateDeliveryDistanceDisplay(distance) {
   
   deliveryInfo.className = 'delivery-distance';
   deliveryInfo.innerHTML = `
-    <div class="distance-info">📏 Distância: ${distance.toFixed(1)} km</div>
     <div class="delivery-fee">🚚 Taxa de entrega: R$ ${deliveryFee.toFixed(2)}</div>
   `;
   
