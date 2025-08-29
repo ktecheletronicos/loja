@@ -499,7 +499,7 @@ class KTechStore {
     if (cartTotal > 0) {
       let totalHTML = `
         <div class="cart-total-content">
-          <div class="cart-total-items">${totalItems} ${totalItems === 1 ? 'item' : 'itens'}</div>
+          <!-- <div class="cart-total-items">${totalItems} ${totalItems === 1 ? 'item' : 'itens'}</div> -->
           <div class="cart-subtotal">Subtotal: ${this.formatPrice(cartTotal)}</div>
       `;
       
@@ -515,7 +515,7 @@ class KTechStore {
       }
       
       totalHTML += `
-          <div class="cart-total-note">*Valores sujeitos a alteração</div>
+          <!-- <div class="cart-total-note">*Valores sujeitos a alteração</div> -->
         </div>
       `;
       
