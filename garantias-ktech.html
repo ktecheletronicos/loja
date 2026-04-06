@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KTech Eletrônicos — Política de Garantia</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --blue-deep:    #0a1628;
+    --blue-mid:     #0d2147;
+    --blue-brand:   #1042a0;
+    --blue-accent:  #1565d8;
+    --blue-glow:    #2c7ef8;
+    --blue-light:   #4f9bff;
+    --blue-pale:    #c8deff;
+    --white:        #f0f6ff;
+    --off-white:    #e2ecff;
+    --muted:        #7a9ac8;
+    --warn:         #ff4e3e;
+    --warn-soft:    #ff8a7a;
+    --success:      #00d68f;
+    --border:       rgba(79,155,255,.15);
+    --card-bg:      rgba(16,66,160,.08);
+    --glass:        rgba(13,33,71,.6);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--blue-deep);
+    color: var(--white);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    line-height: 1.7;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── BACKGROUND MESH ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 10% 20%, rgba(21,101,216,.35) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 90% 80%, rgba(16,66,160,.3) 0%, transparent 55%),
+      radial-gradient(ellipse 40% 40% at 50% 50%, rgba(44,126,248,.08) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* NOISE TEXTURE */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: .5;
+  }
+
+  * { position: relative; z-index: 1; }
+
+  /* ── HEADER ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 48px;
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(16px);
+    background: rgba(10,22,40,.7);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo-area {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    text-decoration: none;
+  }
+
+  .logo-icon {
+    width: 42px;
+    height: 42px;
+    background: linear-gradient(135deg, var(--blue-accent), var(--blue-glow));
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 16px;
+    color: #fff;
+    letter-spacing: -.5px;
+    box-shadow: 0 0 20px rgba(44,126,248,.4);
+    flex-shrink: 0;
+  }
+
+  .logo-text {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: -.3px;
+    color: var(--white);
+    line-height: 1.1;
+  }
+
+  .logo-sub {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: .5px;
+    text-transform: uppercase;
+  }
+
+  nav {
+    display: flex;
+    gap: 32px;
+  }
+
+  nav a {
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--muted);
+    text-decoration: none;
+    letter-spacing: .3px;
+    transition: color .2s;
+  }
+
+  nav a:hover, nav a.active { color: var(--blue-light); }
+
+  /* ── HERO ── */
+  .hero {
+    padding: 96px 48px 80px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(21,101,216,.15);
+    border: 1px solid rgba(21,101,216,.3);
+    border-radius: 100px;
+    padding: 6px 16px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--blue-light);
+    letter-spacing: .8px;
+    text-transform: uppercase;
+    margin-bottom: 28px;
+  }
+
+  .badge::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: var(--success);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--success);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: .6; transform: scale(.8); }
+  }
+
+  .hero h1 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: clamp(40px, 6vw, 72px);
+    line-height: 1.05;
+    letter-spacing: -2px;
+    color: var(--white);
+    max-width: 700px;
+    margin-bottom: 24px;
+  }
+
+  .hero h1 span {
+    background: linear-gradient(135deg, var(--blue-light), var(--blue-glow));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero p {
+    font-size: 17px;
+    color: var(--muted);
+    max-width: 520px;
+    line-height: 1.7;
+  }
+
+  /* ── DIVIDER ── */
+  .divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--blue-brand), transparent);
+    max-width: 1100px;
+    margin: 0 auto;
+    opacity: .4;
+  }
+
+  /* ── SECTIONS ── */
+  .sections {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 64px 48px 80px;
+    display: flex;
+    flex-direction: column;
+    gap: 48px;
+  }
+
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 44px 48px;
+    backdrop-filter: blur(8px);
+    transition: border-color .3s, transform .3s;
+  }
+
+  .card:hover {
+    border-color: rgba(79,155,255,.3);
+    transform: translateY(-2px);
+  }
+
+  .card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    margin-bottom: 28px;
+  }
+
+  .card-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+
+  .icon-blue  { background: rgba(21,101,216,.2); border: 1px solid rgba(21,101,216,.3); }
+  .icon-green { background: rgba(0,214,143,.12); border: 1px solid rgba(0,214,143,.25); }
+  .icon-warn  { background: rgba(255,78,62,.12);  border: 1px solid rgba(255,78,62,.25); }
+
+  .card-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    letter-spacing: -.4px;
+    color: var(--white);
+    line-height: 1.2;
+  }
+
+  .card-subtitle {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 4px;
+    font-weight: 400;
+  }
+
+  .card p {
+    font-size: 15px;
+    color: var(--off-white);
+    margin-bottom: 16px;
+    line-height: 1.75;
+  }
+
+  .card p:last-child { margin-bottom: 0; }
+
+  /* ── HIGHLIGHT BOX ── */
+  .highlight {
+    background: rgba(21,101,216,.12);
+    border-left: 3px solid var(--blue-accent);
+    border-radius: 0 10px 10px 0;
+    padding: 16px 20px;
+    margin: 20px 0;
+    font-size: 14px;
+    color: var(--blue-pale);
+    font-style: italic;
+  }
+
+  /* ── STEPS ── */
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin: 20px 0;
+  }
+
+  .step {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+  }
+
+  .step-num {
+    width: 30px;
+    height: 30px;
+    background: linear-gradient(135deg, var(--blue-accent), var(--blue-glow));
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    color: #fff;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .step p { margin: 0; font-size: 15px; color: var(--off-white); }
+
+  /* ── CHECKLIST ── */
+  .checklist {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 20px 0;
+  }
+
+  .checklist li {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    font-size: 15px;
+    color: var(--off-white);
+  }
+
+  .checklist li::before {
+    content: '';
+    width: 18px;
+    height: 18px;
+    background: rgba(0,214,143,.15);
+    border: 1.5px solid rgba(0,214,143,.4);
+    border-radius: 5px;
+    flex-shrink: 0;
+    margin-top: 3px;
+    background-image: url("data:image/svg+xml,%3Csvg width='10' height='8' viewBox='0 0 10 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 4L3.5 6.5L9 1' stroke='%2300d68f' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+  }
+
+  /* ── WARN TAG ── */
+  .warn-tag {
+    display: inline-block;
+    background: rgba(255,78,62,.12);
+    border: 1px solid rgba(255,78,62,.3);
+    color: var(--warn-soft);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 6px;
+    vertical-align: middle;
+  }
+
+  strong.em { color: var(--warn-soft); }
+  strong.bl { color: var(--blue-light); }
+
+  /* ── DEADLINE CALLOUT ── */
+  .deadline {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: linear-gradient(135deg, rgba(255,78,62,.08), rgba(255,78,62,.04));
+    border: 1px solid rgba(255,78,62,.2);
+    border-radius: 14px;
+    padding: 20px 24px;
+    margin: 24px 0;
+  }
+
+  .deadline-num {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 40px;
+    color: var(--warn-soft);
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .deadline-label {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--warn-soft);
+    text-transform: uppercase;
+    letter-spacing: .6px;
+  }
+
+  .deadline-desc {
+    font-size: 14px;
+    color: var(--muted);
+  }
+
+  /* ── FAQ ── */
+  .faq {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 8px;
+  }
+
+  .faq-item {
+    background: rgba(255,255,255,.03);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+  }
+
+  .faq-q {
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--blue-light);
+    margin-bottom: 10px;
+  }
+
+  .faq-a {
+    font-size: 14px;
+    color: var(--off-white);
+    margin: 0 !important;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 48px;
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .footer-brand {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--white);
+  }
+
+  .footer-brand span {
+    color: var(--muted);
+    font-weight: 300;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    margin-left: 8px;
+  }
+
+  .footer-note {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 768px) {
+    header { padding: 16px 24px; }
+    nav { display: none; }
+    .hero { padding: 60px 24px 48px; }
+    .hero h1 { letter-spacing: -1px; }
+    .sections { padding: 40px 24px 60px; }
+    .card { padding: 28px 24px; }
+    footer { padding: 32px 24px; }
+    .deadline-num { font-size: 32px; }
+  }
+
+  /* ── ANIMATION ── */
+  .card {
+    animation: fadeUp .6s ease both;
+  }
+
+  .card:nth-child(1) { animation-delay: .1s; }
+  .card:nth-child(2) { animation-delay: .22s; }
+  .card:nth-child(3) { animation-delay: .34s; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .hero .badge { animation: fadeUp .5s ease both; }
+  .hero h1     { animation: fadeUp .5s .1s ease both; }
+  .hero p      { animation: fadeUp .5s .2s ease both; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <a href="#" class="logo-area" style="text-decoration:none;">
+    <div class="logo-icon">KT</div>
+    <div>
+      <div class="logo-text">KTech</div>
+      <div class="logo-sub">Eletrônicos &amp; Importados</div>
+    </div>
+  </a>
+  <nav>
+    <a href="#">Início</a>
+    <a href="#" class="active">Garantias</a>
+    <a href="#">Garantia dos SSDs</a>
+  </nav>
+</header>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="badge">Política Oficial de Garantia</div>
+  <h1>Compramos com <span>confiança.</span><br>Garantimos com seriedade.</h1>
+  <p>Conheça todos os seus direitos e os procedimentos para acionar a garantia dos produtos adquiridos na KTech.</p>
+</section>
+
+<div class="divider"></div>
+
+<!-- CONTENT SECTIONS -->
+<div class="sections">
+
+  <!-- CARD 1: Termos de Garantia -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon icon-blue">🛡️</div>
+      <div>
+        <div class="card-title">Termos de Garantia</div>
+        <div class="card-subtitle">Validade e condições de cobertura</div>
+      </div>
+    </div>
+
+    <p>Os produtos da KTech possuem <strong class="bl">30 dias de garantia</strong> contados a partir da data de entrega, válidos para defeitos de fabricação comprovados — desde que o produto <strong class="em">não esteja violado, arranhado ou quebrado.</strong></p>
+
+    <p>Caso seu produto apresente algum defeito dentro do prazo, pedimos que nos envie <strong class="bl">vídeos e fotos detalhadas</strong> acompanhadas de uma descrição do ocorrido. Assim conseguimos avaliar e, se aplicável, acionar a cobertura.</p>
+
+    <div class="highlight">
+      "Toda interação com a KTech é bem-vinda. Estamos aqui para garantir sua satisfação de forma justa e transparente."
+    </div>
+  </div>
+
+  <!-- CARD 2: Como acionar -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon icon-green">⚡</div>
+      <div>
+        <div class="card-title">Como Acionar a Garantia</div>
+        <div class="card-subtitle">Passo a passo simplificado</div>
+      </div>
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <p>Documente o problema com <strong class="bl">vídeos e fotos</strong> claros do produto e do defeito apresentado.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <p>Embale o produto na <strong class="bl">embalagem original</strong> com todos os acessórios incluídos na entrega.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <p>Leve ao nosso endereço ou solicite um serviço de coleta / troca. <span class="warn-tag">Taxas podem ser aplicadas</span></p>
+      </div>
+    </div>
+
+    <div class="highlight">
+      Todas as entregas são realizadas por motoboy externo (geralmente R$ 10 a R$ 15), valor incluso no comprovante de venda. Nenhum serviço de entrega é gratuito, considerando os custos com entregador, combustível e tempo.
+    </div>
+  </div>
+
+  <!-- CARD 3: Trocas e Devoluções -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon icon-warn">♻️</div>
+      <div>
+        <div class="card-title">Trocas e Devoluções</div>
+        <div class="card-subtitle">Apenas produtos sem defeito de fabricação</div>
+      </div>
+    </div>
+
+    <div class="deadline">
+      <div>
+        <div class="deadline-num">24h</div>
+      </div>
+      <div>
+        <div class="deadline-label">Prazo para Arrependimento</div>
+        <div class="deadline-desc">Para troca ou devolução por desistência de compra, o prazo é de 24 horas a partir da entrega.</div>
+      </div>
+    </div>
+
+    <p><strong class="bl">Critérios obrigatórios para devolução:</strong></p>
+
+    <ul class="checklist">
+      <li>Produto sem violação, arranhados ou danos físicos de qualquer natureza</li>
+      <li>Devolver na embalagem original com todos os acessórios (cabos, manuais, brindes etc.)</li>
+      <li>Lacres intactos — tanto do fabricante quanto da KTech</li>
+      <li>Produto <strong>não pode ter sido usado</strong></li>
+      <li>Enviar foto antes de se deslocar para evitar transtornos</li>
+    </ul>
+
+    <div class="faq">
+      <div class="faq-item">
+        <div class="faq-q">Me arrependi da compra. Posso devolver?</div>
+        <p class="faq-a">Sim. Devolvemos o valor referente ao produto, <strong class="em">exceto taxas de entrega</strong> conforme comprovante de venda, desde que respeitado o prazo de 24h e os critérios acima.</p>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Posso trocar por outro produto e pagar a diferença?</div>
+        <p class="faq-a">Sim, respeitando o prazo estabelecido. Será cobrada uma nova taxa de entrega, ou você pode retirar diretamente no nosso endereço no <strong class="bl">Bairro Dirceu 2</strong>.</p>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /sections -->
+
+<!-- FOOTER -->
+<footer>
+  <div>
+    <div class="footer-brand">KTech Eletrônicos e Importados<span>— Teresina, PI</span></div>
+    <div class="footer-note" style="margin-top:4px;">Política de garantia válida para compras realizadas diretamente com a KTech.</div>
+  </div>
+  <div class="footer-note">Dúvidas? Fale conosco pelo WhatsApp.</div>
+</footer>
+
+</body>
+</html>
