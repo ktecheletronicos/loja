@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta property="og:title" content="KTech — Catálogo Oficial">
+<meta property="og:description" content="Ofertas atualizadas, retirada no local e entrega rápida. Clique e escolha seus produtos!">
+<meta property="og:image" content="https://ktecheletronicos.github.io/loja/ktech_preview_small.png">
+<meta property="og:image:width" content="200">
+<meta property="og:image:height" content="200">
+<meta property="og:url" content="https://ktecheletronicos.github.io/loja/">
+<meta property="og:type" content="website">
+<title>KTech - Eletrônicos</title>
+<link rel="icon" type="image/png" href="https://ktecheletronicos.github.io/ktechfiles/logo_k.png">
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<link rel="stylesheet" href="estilo.css">
+<style>
+  .delivery-distance {
+    background: #f0f8ff;
+    border: 2px solid #4a90e2;
+    border-radius: 8px;
+    padding: 12px;
+    margin: 12px 0;
+    text-align: center;
+    font-weight: bold;
+  }
+  
+  .delivery-distance .distance-info {
+    font-size: 16px;
+    color: #2c5aa0;
+    margin-bottom: 8px;
+  }
+  
+  .delivery-distance .delivery-fee {
+    font-size: 18px;
+    color: #e74c3c;
+  }
+  
+  .delivery-distance.calculating {
+    background: #fff3cd;
+    border-color: #ffc107;
+    color: #856404;
+  }
+  
+  .delivery-distance .loading-text {
+    font-size: 14px;
+    font-style: italic;
+  }
+  
+  .delivery-unavailable {
+    background: #f8d7da;
+    border-color: #dc3545;
+    color: #721c24;
+  }
+  
+  .hidden {
+    display: none !important;
+  }
+</style>
+</head>
+<body>
+<!-- HEADER -->
+<header class="header">
+  <img src="https://ktecheletronicos.github.io/ktechfiles/logo_ktech_eletronicos.png" alt="KTech Logo" class="logo">
+  <h1>KTech Eletrônicos</h1>
+  <div class="search-container">
+    <input type="text" class="search-input" id="searchInput" placeholder="🔍 Buscar produtos...">
+  </div>
+  <button class="cart-button" id="cartToggle">
+    🛒
+    <span class="cart-count hidden" id="cartCount">0</span>
+  </button>
+</header>
+
+<!-- PRODUTOS -->
+<main class="products-container">
+  <div id="loadingSpinner" class="loading">
+    <div class="spinner"></div>
+  </div>
+  <div class="products-grid" id="productsGrid"></div>
+</main>
+
+<!-- CARRINHO OVERLAY -->
+<div class="cart-overlay" id="cartOverlay"></div>
+
+<!-- CARRINHO PANEL -->
+<aside class="cart-panel" id="cartPanel">
+  <div class="cart-header">
+    <h2 class="cart-title">Meu Carrinho</h2>
+    <button class="cart-close" id="cartClose">← Voltar</button>
+  </div>
+  
+  <div class="cart-items" id="cartItems">
+    <div class="cart-empty">Carrinho vazio</div>
+  </div>
+  
+  <div class="cart-form">
+    <!-- Opções de entrega -->
+    <div class="delivery-options">
+      <label>Como deseja receber?</label>
+      <div class="radio-group">
+        <label class="radio-option">
+          <input type="radio" name="deliveryOption" value="RETIRADA" checked>
+          🏪 Retirar na loja
+        </label>
+        <label class="radio-option">
+          <input type="radio" name="deliveryOption" value="ENTREGA">
+          🚚 Entrega (use minha localização)
+        </label>
+      </div>
+    </div>
+
+    <!-- Formulário de entrega -->
+    <div id="deliveryForm" class="hidden">
+      <div id="map" class="map-container"></div>
+      
+      <!-- INSTRUÇÃO DESTACADA DO MAPA -->
+      <div class="map-instruction">
+        <span class="map-instruction-icon">📍</span>
+        <strong>IMPORTANTE:</strong> Arraste o pino azul no mapa até o local exato da sua entrega!
+      </div>
+      
+      <!-- CAMPO DE DISTÂNCIA E TAXA DE ENTREGA -->
+      <div id="deliveryDistanceInfo" class="delivery-distance calculating">
+        <div class="loading-text">📏 Calculando distância...</div>
+      </div>
+      
+      <label>Tipo de endereço:</label>
+      <div class="radio-group" style="margin-bottom: 12px;">
+        <label class="radio-option">
+          <input type="radio" name="tipoEndereco" value="CASA">
+          🏠 Casa
+        </label>
+        <label class="radio-option">
+          <input type="radio" name="tipoEndereco" value="CONDOMINIO">
+          🏘️ Condomínio
+        </label>
+        <label class="radio-option">
+          <input type="radio" name="tipoEndereco" value="EMPRESA">
+          🏢 Empresa
+        </label>
+      </div>
+      
+      <div id="empresaContainer" class="hidden">
+        <input type="text" class="form-input" id="empresaOuCondominio" placeholder="Nome da empresa ou condomínio">
+      </div>
+      
+      <input type="text" class="form-input" id="street" placeholder="Rua, Quadra ou Avenida">
+      <div style="display: flex; gap: 12px;">
+        <input type="text" class="form-input" id="houseNumber" placeholder="Número" style="flex: 1;">
+        <input type="text" class="form-input" id="neighborhood" placeholder="Bairro" style="flex: 2;">
+      </div>
+      <input type="hidden" id="city">
+    </div>
+
+    <!-- Dados do cliente -->
+    <form id="customerForm">
+      <input type="text" class="form-input" id="customerName" placeholder="Nome completo *" required>
+      <div class="form-error" id="nameError">Nome deve ter pelo menos 12 caracteres (nome e sobrenome)</div>
+      
+      <select class="form-select" id="paymentMethod" required>
+        <option value="">Forma de Pagamento *</option>
+        <option value="PIX">💰 PIX</option>
+        <option value="Dinheiro">💵 Dinheiro</option>
+        <option value="Cartão">💳 Cartão (taxa adicional)</option>
+        <option value="Link">📱 Link de Pagamento (taxa adicional)</option>
+      </select>
+      
+      <textarea class="form-textarea" id="observations" placeholder="Observações (opcional)" rows="3"></textarea>
+      
+      <button type="submit" class="whatsapp-button" id="whatsappBtn" disabled>
+        📱 Finalizar no WhatsApp
+      </button>
+    </form>
+  </div>
+</aside>
+
+<!-- FLOATING CART BUTTON -->
+<button class="floating-cart" id="floatingCart">
+  🛒 Carrinho (<span id="floatingCount">0</span>)
+</button>
+
+<!-- MODAL DE IMAGEM -->
+<div class="modal" id="imageModal">
+  <img id="modalImage" src="" alt="Produto">
+  <button class="modal-close" id="modalClose">✕</button>
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/search.js"></script>
+<script src="js/location.js"></script>
+<script src="js/cart.js"></script>
+
+<script>
+// ============================================================
+// CONFIGURAÇÃO DA API DE PRODUTOS
+// ============================================================
+const PRODUTOS_API_URL = 'https://webhookn8n.ktecheletronicos.com.br/webhook/produtos_whatsapp';
+
+// ============================================================
+// NORMALIZAÇÃO DOS DADOS DO NOVO FORMATO JSON
+// O webhook retorna: { total, produtos: [...] }
+// Cada produto possui: id, link, categoria, name, description,
+//                      price, sale_price, preco_real, foto
+// ============================================================
+function normalizarProduto(p) {
+  // Converte string de preço "79,99" para número 79.99
+  function parsePreco(valor) {
+    if (valor === null || valor === undefined || valor === '') return null;
+    return parseFloat(String(valor).replace(',', '.'));
+  }
+
+  return {
+    id:          p.id,
+    link:        p.link || null,
+    categoria:   p.categoria || 'Sem Categoria',
+    name:        p.name || p.nome || '',
+    description: p.description || p.descricao || '',
+    price:       parsePreco(p.price || p.preco),
+    sale_price:  parsePreco(p.sale_price || p.preco_promocional),
+    preco_real:  parsePreco(p.preco_real),
+    foto:        p.foto || p.imagem || '',
+  };
+}
+
+// ============================================================
+// BUSCA DE PRODUTOS NO WEBHOOK
+// ============================================================
+async function fetchProdutos() {
+  const resp = await fetch(PRODUTOS_API_URL);
+  if (!resp.ok) throw new Error(`Erro ao buscar produtos: ${resp.status}`);
+  const json = await resp.json();
+
+  // Suporte ao formato { total, produtos: [...] } e também array direto
+  const lista = Array.isArray(json) ? json : (json.produtos || []);
+  return lista.map(normalizarProduto);
+}
+
+// ============================================================
+// RENDERIZAÇÃO DOS PRODUTOS
+// ============================================================
+function renderizarProdutos(produtos) {
+  const grid = document.getElementById('productsGrid');
+  grid.innerHTML = '';
+
+  if (!produtos || produtos.length === 0) {
+    grid.innerHTML = '<p style="text-align:center;padding:40px;color:#888;">Nenhum produto encontrado.</p>';
+    return;
+  }
+
+  // Agrupar por categoria
+  const categorias = {};
+  produtos.forEach(p => {
+    if (!categorias[p.categoria]) categorias[p.categoria] = [];
+    categorias[p.categoria].push(p);
+  });
+
+  Object.keys(categorias).forEach(cat => {
+    // Título da categoria
+    const titulo = document.createElement('div');
+    titulo.className = 'category-title';
+    titulo.textContent = cat;
+    grid.appendChild(titulo);
+
+    categorias[cat].forEach(produto => {
+      const precoFinal   = produto.preco_real ?? produto.sale_price ?? produto.price ?? 0;
+      const precoOriginal = (produto.sale_price !== null && produto.price !== null && produto.price > precoFinal)
+        ? produto.price
+        : null;
+
+      const card = document.createElement('div');
+      card.className = 'product-card';
+      card.dataset.id          = produto.id;
+      card.dataset.name        = produto.name;
+      card.dataset.price       = precoFinal;
+      card.dataset.description = produto.description;
+      card.dataset.foto        = produto.foto;
+      card.dataset.link        = produto.link || '';
+
+      card.innerHTML = `
+        <div class="product-image-wrap">
+          <img
+            class="product-image"
+            src="${produto.foto || ''}"
+            alt="${produto.name}"
+            loading="lazy"
+            onerror="this.src='https://ktecheletronicos.github.io/ktechfiles/logo_k.png'"
+          >
+        </div>
+        <div class="product-info">
+          <h3 class="product-name">${produto.name}</h3>
+          <div class="product-price-wrap">
+            ${precoOriginal ? `<span class="product-price-old">R$ ${precoOriginal.toFixed(2).replace('.', ',')}</span>` : ''}
+            <span class="product-price">R$ ${precoFinal.toFixed(2).replace('.', ',')}</span>
+          </div>
+          <button class="add-to-cart-btn" data-id="${produto.id}">
+            🛒 Adicionar
+          </button>
+        </div>
+      `;
+
+      // Clique na imagem → modal
+      card.querySelector('.product-image').addEventListener('click', () => {
+        abrirModal(produto.foto, produto.name);
+      });
+
+      // Botão adicionar ao carrinho
+      card.querySelector('.add-to-cart-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        adicionarAoCarrinho({
+          id:          produto.id,
+          name:        produto.name,
+          price:       precoFinal,
+          foto:        produto.foto,
+          link:        produto.link,
+          description: produto.description,
+        });
+      });
+
+      grid.appendChild(card);
+    });
+  });
+}
+
+// ============================================================
+// MODAL DE IMAGEM
+// ============================================================
+function abrirModal(src, alt) {
+  const modal = document.getElementById('imageModal');
+  const img   = document.getElementById('modalImage');
+  img.src = src;
+  img.alt = alt;
+  modal.classList.add('active');
+}
+
+document.getElementById('modalClose').addEventListener('click', () => {
+  document.getElementById('imageModal').classList.remove('active');
+});
+document.getElementById('imageModal').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) e.currentTarget.classList.remove('active');
+});
+
+// ============================================================
+// INICIALIZAÇÃO
+// ============================================================
+let todosOsProdutos = [];
+
+async function inicializar() {
+  const spinner = document.getElementById('loadingSpinner');
+  spinner.style.display = 'flex';
+
+  try {
+    todosOsProdutos = await fetchProdutos();
+    renderizarProdutos(todosOsProdutos);
+  } catch (err) {
+    console.error(err);
+    document.getElementById('productsGrid').innerHTML =
+      `<p style="text-align:center;padding:40px;color:#c0392b;">
+        ⚠️ Não foi possível carregar os produtos.<br>
+        <small>${err.message}</small>
+      </p>`;
+  } finally {
+    spinner.style.display = 'none';
+  }
+}
+
+// Busca/filtro em tempo real
+document.getElementById('searchInput').addEventListener('input', (e) => {
+  const termo = e.target.value.toLowerCase().trim();
+  if (!termo) {
+    renderizarProdutos(todosOsProdutos);
+    return;
+  }
+  const filtrados = todosOsProdutos.filter(p =>
+    p.name.toLowerCase().includes(termo) ||
+    p.description.toLowerCase().includes(termo) ||
+    p.categoria.toLowerCase().includes(termo)
+  );
+  renderizarProdutos(filtrados);
+});
+
+document.addEventListener('DOMContentLoaded', inicializar);
+</script>
+
+<script>
+// ============================================================
+// TAXA DE ENTREGA
+// ============================================================
+function calculateDeliveryFee(distanceKm) {
+  if (distanceKm <= 10) {
+    return 10.00;
+  } else {
+    const additionalKm = Math.ceil(distanceKm - 10);
+    return 10.00 + additionalKm;
+  }
+}
+
+function updateDeliveryDistanceDisplay(distance) {
+  const deliveryInfo = document.getElementById('deliveryDistanceInfo');
+  if (!deliveryInfo) return;
+
+  if (distance === null || distance === undefined) {
+    deliveryInfo.className = 'delivery-distance calculating';
+    deliveryInfo.innerHTML = '<div class="loading-text">📏 Calculando distância...</div>';
+    return;
+  }
+
+  if (distance > 30) {
+    deliveryInfo.className = 'delivery-distance delivery-unavailable';
+    deliveryInfo.innerHTML = `
+      <div class="distance-info">📏 Distância: ${distance.toFixed(1)} km</div>
+      <div class="delivery-fee">❌ Entrega não disponível para esta distância</div>
+    `;
+    return;
+  }
+
+  const deliveryFee = calculateDeliveryFee(distance);
+  deliveryInfo.className = 'delivery-distance';
+  deliveryInfo.innerHTML = `
+    <div class="delivery-fee">🚚 Taxa de entrega: R$ ${deliveryFee.toFixed(2)}</div>
+  `;
+
+  window.currentDeliveryFee = deliveryFee;
+  window.currentDistance    = distance;
+}
+
+document.addEventListener('locationDistanceCalculated', (event) => {
+  updateDeliveryDistanceDisplay(event.detail.distance);
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  const deliveryOptions      = document.querySelectorAll('input[name="deliveryOption"]');
+  const deliveryDistanceInfo = document.getElementById('deliveryDistanceInfo');
+
+  deliveryOptions.forEach(radio => {
+    radio.addEventListener('change', (e) => {
+      if (e.target.value === 'ENTREGA') {
+        if (deliveryDistanceInfo) {
+          deliveryDistanceInfo.classList.remove('hidden');
+          if (window.currentDistance !== undefined) {
+            updateDeliveryDistanceDisplay(window.currentDistance);
+          }
+        }
+      } else {
+        if (deliveryDistanceInfo) deliveryDistanceInfo.classList.add('hidden');
+        window.currentDeliveryFee = 0;
+        window.currentDistance    = undefined;
+      }
+    });
+  });
+});
+
+function getCurrentDeliveryFee() {
+  const opt = document.querySelector('input[name="deliveryOption"]:checked');
+  return (opt && opt.value === 'ENTREGA') ? (window.currentDeliveryFee || 0) : 0;
+}
+
+function getCurrentDistance() {
+  const opt = document.querySelector('input[name="deliveryOption"]:checked');
+  return (opt && opt.value === 'ENTREGA') ? (window.currentDistance || 0) : 0;
+}
+
+window.calculateDeliveryFee        = calculateDeliveryFee;
+window.getCurrentDeliveryFee       = getCurrentDeliveryFee;
+window.getCurrentDistance          = getCurrentDistance;
+window.updateDeliveryDistanceDisplay = updateDeliveryDistanceDisplay;
+</script>
+
+<script src="js/store.js"></script>
+</body>
+</html>
